@@ -1,0 +1,45 @@
+name: Verify Poki
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: backend/.node-version
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+  ios:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test shared domain package
+        run: swift test --package-path ios/Packages/PokiCore
+      - name: Choose an available iPhone simulator
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '--json']))
+          phones = [d for runtime, entries in devices['devices'].items() if 'iOS' in runtime for d in entries if d['name'].startswith('iPhone')]
+          if not phones:
+              raise SystemExit('No iPhone simulator available')
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write('POKI_SIMULATOR_ID=' + phones[0]['udid'] + '\n')
+          PY
+      - name: Build and test the iOS app
+        run: >-
+          xcodebuild test -project Poki.xcodeproj -scheme Poki
+          -destination "platform=iOS Simulator,id=$POKI_SIMULATOR_ID"
+          CODE_SIGNING_ALLOWED=NO

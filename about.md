@@ -149,7 +149,7 @@ Do not add chat threads, a social feed, read receipts, online status, typing ind
 
 ## Engineering direction and project status
 
-**Implementation baseline: September 26, 2026.** A local SwiftUI prototype now covers the friend list, safe message editing, simulated poke feedback, favorite configuration, and the profile shell. The service remains simulated; authentication, friend synchronization, APNs delivery, account management, and the widget are not implemented yet. Preserve the product behavior above while building in small, testable increments.
+**Implementation baseline: September 26, 2026.** A local SwiftUI prototype now covers the friend list, safe message editing, simulated poke feedback, favorite configuration, and the profile shell. The iOS send service remains simulated. As of September 28, the repository also has a tested Fastify backend foundation (health endpoint only), local setup, and CI; see `docs/project-status.md` for the code review. Authentication, friend synchronization, APNs delivery, account management, and the widget are not implemented yet. Preserve the product behavior above while building in small, testable increments.
 
 Build a native iOS app backed by one small backend codebase and managed infrastructure. The main technical risks are accidental sends, authorization between friends, duplicate requests, and unreliable notification delivery. Prove those flows before polishing secondary screens.
 
@@ -335,18 +335,18 @@ The two-week release excludes the widget, notification poke-back action, invite 
 
 ### First implementation backlog
 
-- [ ] Identify the intended GitHub remote; this folder currently has no Git metadata or configured remote.
+- [x] Identify the intended GitHub remote: `irrssue/poki`, with `main` as the working branch.
 - [ ] Confirm the bundle ID, Apple Developer team, app name availability, and two-device test access.
 - [x] Create the SwiftUI app and shared Swift package with a mock friend list matching the reference.
-- [ ] Create the Fastify service with strict TypeScript configuration and environment validation.
+- [x] Create the Fastify service with strict TypeScript configuration and environment validation.
 - [ ] Write the initial SQL migration and OpenAPI contract, including connection and idempotency constraints.
-- [ ] Add local setup instructions and CI builds/checks.
+- [x] Add local setup instructions and CI builds/checks.
 - [ ] Demonstrate Sign in with Apple and one real staging push before expanding UI scope.
 - [ ] Deliver the smallest complete flow: authenticate two users → request → accept → poke → receive notification.
 
 ### Decisions still open
 
-The implementation baseline above selects the stack and authentication method. Remaining setup/product decisions are the GitHub repository, bundle ID/team, hosting budget and region, invite domain, avatar limits, and final release distribution. Validate the provisional iOS 17 target, rate limits, retry policy, and retention settings during Phase 0 and beta. Keep the beta free; revisit monetization only after the core interaction is validated. Do not add payments, chat, analytics SDKs, or additional infrastructure without a concrete need.
+The implementation baseline above selects the stack and authentication method. Remaining setup/product decisions are the bundle ID/team, hosting budget and region, invite domain, avatar limits, and final release distribution. Validate the provisional iOS 17 target, rate limits, retry policy, and retention settings during Phase 0 and beta. Keep the beta free; revisit monetization only after the core interaction is validated. Do not add payments, chat, analytics SDKs, or additional infrastructure without a concrete need.
 
 ## Success criteria
 

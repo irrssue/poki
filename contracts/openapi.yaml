@@ -1,0 +1,49 @@
+openapi: 3.1.0
+info:
+  title: Poki API
+  version: 0.1.0
+  description: |
+    Initial service foundation. Health reports process liveness only, not database
+    readiness or notification delivery. Social endpoints are not implemented.
+    Authenticated routes and their schemas must be added before building clients.
+paths:
+  /v1/health:
+    get:
+      operationId: getHealth
+      summary: Check API process liveness
+      security: []
+      responses:
+        '200':
+          description: The API process is responding.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    const: ok
+components:
+  schemas:
+    Error:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [NOT_FOUND, INVALID_REQUEST, INTERNAL_ERROR]
+            message:
+              type: string
