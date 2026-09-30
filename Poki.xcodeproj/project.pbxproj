@@ -10,15 +10,19 @@
 		1280A601718EC032615F1C74 /* BottomBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA140A34BA6AFF3BE5ED5194 /* BottomBar.swift */; };
 		14D9C22CF981AF32FDA9D310 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C44D969DEE728EF9DC27305 /* ProfileView.swift */; };
 		5578D7AECE29BC66338D561B /* PokiCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2A4434D4B789C225FC6874E5 /* PokiCore */; };
+		72949323067D4DDB89B5AEAC /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AF50C6F7D241FF4993ED104 /* AccountView.swift */; };
 		7CFA0AC7969FAF4624C93573 /* PokiCore in Frameworks */ = {isa = PBXBuildFile; productRef = 19BBFFC7025D471DB6165916 /* PokiCore */; };
 		85B113A2C99147B5AEB342F1 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 755B9F615DAAD4167417BDC1 /* RootView.swift */; };
 		8900824A48318B69969E3F07 /* FavoriteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D89D65E6886E2C4953ADF6A0 /* FavoriteStore.swift */; };
 		94E4F6B2F73E485604D392C9 /* FavoriteEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FAF7AABB23E0183A22EC099 /* FavoriteEditorView.swift */; };
+		9CEE414A989A0396F7C90813 /* NotificationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFAB85625BDF381B0B5E20AE /* NotificationsView.swift */; };
 		A590FB7C95D9F8A086D97C0B /* FriendRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEDA5A72B3C053F932A6BDC9 /* FriendRow.swift */; };
 		A6026EA264E16C865775026B /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F41F51A64258034A150FA0C /* AppModel.swift */; };
 		A82743ED5341C3E6245F0EAC /* PokeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000AE84DB8C1645037BF3EF2 /* PokeService.swift */; };
 		BAA21DD0E3E85998F4107A08 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAE5493CE2AA3B6C0860D230 /* HomeView.swift */; };
+		BC0CA0C660A8D82A2F3D04C1 /* AddFriendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76601AA69A8E91FF0ADD58EC /* AddFriendView.swift */; };
 		BCF8B96211EA11CEF7412156 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 98455D71F0C6601B0B763A2E /* Assets.xcassets */; };
+		CB8CD21417F20C4750E2E898 /* AccountService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D6DC51F869356DD732A176B /* AccountService.swift */; };
 		CDE6411F9855CB48A1E95F8D /* PokiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1AA90DC4F2DA245C4B7D203 /* PokiApp.swift */; };
 		F7BDD7C93CE7EAE6F888B36D /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BD247E5E023594152C212A5 /* AppModelTests.swift */; };
 		FC8140089961F2C0DB11BC47 /* FeedbackBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE5F51DA0285BA63EC97ADF5 /* FeedbackBanner.swift */; };
@@ -40,15 +44,19 @@
 		1FAF7AABB23E0183A22EC099 /* FavoriteEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteEditorView.swift; sourceTree = "<group>"; };
 		4727BEE926764F4A19D08DF8 /* PokiCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PokiCore; path = ios/Packages/PokiCore; sourceTree = SOURCE_ROOT; };
 		5573446B3297CCEF12C6DB24 /* PokiTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PokiTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5AF50C6F7D241FF4993ED104 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
 		5C44D969DEE728EF9DC27305 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		6D6DC51F869356DD732A176B /* AccountService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountService.swift; sourceTree = "<group>"; };
 		755B9F615DAAD4167417BDC1 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		76601AA69A8E91FF0ADD58EC /* AddFriendView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFriendView.swift; sourceTree = "<group>"; };
 		7F41F51A64258034A150FA0C /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		98455D71F0C6601B0B763A2E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AAE5493CE2AA3B6C0860D230 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		AEDA5A72B3C053F932A6BDC9 /* FriendRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendRow.swift; sourceTree = "<group>"; };
 		BE5F51DA0285BA63EC97ADF5 /* FeedbackBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackBanner.swift; sourceTree = "<group>"; };
-		C3AB41828CC9939437362783 /* Poki.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Poki.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C3AB41828CC9939437362783 /* Poki.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Poki.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D89D65E6886E2C4953ADF6A0 /* FavoriteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteStore.swift; sourceTree = "<group>"; };
+		EFAB85625BDF381B0B5E20AE /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
 		F1AA90DC4F2DA245C4B7D203 /* PokiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PokiApp.swift; sourceTree = "<group>"; };
 		FA140A34BA6AFF3BE5ED5194 /* BottomBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomBar.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -113,6 +121,8 @@
 		71C8A2937844D11E1981A5A1 /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				EBBBD088B732A390FEF27DA7 /* Accounts */,
+				FFF1D5AF34ADEAEF6C17235F /* Connections */,
 				CC7F260436B7D0A82D7ED3CD /* Favorite */,
 				16F123412B3974A2DF9B6F1C /* Friends */,
 				8F437E110BD93D6647B6981B /* Profile */,
@@ -168,6 +178,7 @@
 		C0826CAC0FA092BD2F27F65E /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				6D6DC51F869356DD732A176B /* AccountService.swift */,
 				D89D65E6886E2C4953ADF6A0 /* FavoriteStore.swift */,
 				000AE84DB8C1645037BF3EF2 /* PokeService.swift */,
 			);
@@ -197,6 +208,23 @@
 				BE5F51DA0285BA63EC97ADF5 /* FeedbackBanner.swift */,
 			);
 			path = UI;
+			sourceTree = "<group>";
+		};
+		EBBBD088B732A390FEF27DA7 /* Accounts */ = {
+			isa = PBXGroup;
+			children = (
+				5AF50C6F7D241FF4993ED104 /* AccountView.swift */,
+			);
+			path = Accounts;
+			sourceTree = "<group>";
+		};
+		FFF1D5AF34ADEAEF6C17235F /* Connections */ = {
+			isa = PBXGroup;
+			children = (
+				76601AA69A8E91FF0ADD58EC /* AddFriendView.swift */,
+				EFAB85625BDF381B0B5E20AE /* NotificationsView.swift */,
+			);
+			path = Connections;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -252,6 +280,7 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					3181954BC58C235D00DA65D0 = {
+						DevelopmentTeam = S9ZZCZZ5BV;
 						ProvisioningStyle = Automatic;
 					};
 					9CBF4B43A6D06D281042C6AC = {
@@ -307,6 +336,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CB8CD21417F20C4750E2E898 /* AccountService.swift in Sources */,
+				72949323067D4DDB89B5AEAC /* AccountView.swift in Sources */,
+				BC0CA0C660A8D82A2F3D04C1 /* AddFriendView.swift in Sources */,
 				A6026EA264E16C865775026B /* AppModel.swift in Sources */,
 				1280A601718EC032615F1C74 /* BottomBar.swift in Sources */,
 				94E4F6B2F73E485604D392C9 /* FavoriteEditorView.swift in Sources */,
@@ -314,6 +346,7 @@
 				FC8140089961F2C0DB11BC47 /* FeedbackBanner.swift in Sources */,
 				A590FB7C95D9F8A086D97C0B /* FriendRow.swift in Sources */,
 				BAA21DD0E3E85998F4107A08 /* HomeView.swift in Sources */,
+				9CEE414A989A0396F7C90813 /* NotificationsView.swift in Sources */,
 				A82743ED5341C3E6245F0EAC /* PokeService.swift in Sources */,
 				CDE6411F9855CB48A1E95F8D /* PokiApp.swift in Sources */,
 				14D9C22CF981AF32FDA9D310 /* ProfileView.swift in Sources */,

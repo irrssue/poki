@@ -11,9 +11,9 @@ struct ProfileView: View {
                         Image(systemName: "person.crop.circle.fill")
                             .font(.system(size: 52))
                         VStack(alignment: .leading) {
-                            Text("Your profile")
+                            Text(model.profile?.name ?? "Your profile")
                                 .font(.headline)
-                            Text("@you")
+                            Text("@\(model.profile?.username ?? "")")
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -21,27 +21,21 @@ struct ProfileView: View {
                 }
 
                 Section("Poki") {
-                    Button("Add a friend", systemImage: "person.badge.plus") { }
-                    Button("Friend requests", systemImage: "person.2") { }
+                    Button("Add a friend", systemImage: "person.badge.plus") { model.isAddFriendPresented = true }
+                    Button("Friend requests", systemImage: "person.2") { model.isNotificationsPresented = true }
                     Button("Configure favorite", systemImage: "star") {
                         model.isFavoriteEditorPresented = true
                     }
                 }
 
-                Section("Settings") {
-                    Label("Notifications", systemImage: "bell")
-                    Label("Privacy and safety", systemImage: "hand.raised")
-                    Label("Help", systemImage: "questionmark.circle")
-                }
-
                 Section {
-                    Text("Prototype mode · sends are simulated")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    Text("Requests and pokes appear in the app’s notification inbox. Open Poki to check for new activity.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    Button("Sign out", role: .destructive) { Task { await model.signOut() } }
                 }
             }
             .navigationTitle("Profile")
-            .safeAreaPadding(.bottom, 88)
+            
         }
     }
 }

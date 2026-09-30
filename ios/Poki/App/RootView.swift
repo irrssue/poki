@@ -2,11 +2,16 @@ import SwiftUI
 
 struct RootView: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         @Bindable var model = model
 
-        ZStack(alignment: .bottom) {
+        Group {
+            if model.starting { ProgressView() }
+            else if !model.signedIn || model.profile == nil { AccountView() }
+            else {
+        VStack(spacing: 0) {
             Group {
                 switch model.destination {
                 case .home:
@@ -16,11 +21,22 @@ struct RootView: View {
                 }
             }
 
-            BottomBar()
-                .padding(.horizontal, 24)
-                .padding(.bottom, 8)
+            }.safeAreaInset(edge: .bottom) {
+                BottomBar().padding(.bottom, 8)
+            }
+            }
         }
         .background(Color(.systemBackground))
+        .task { await model.start() }
+        .task(id: scenePhase) {
+            guard scenePhase == .active else { return }
+            while !Task.isCancelled {
+                await model.refresh()
+                do { try await Task.sleep(for: .seconds(10)) } catch { return }
+            }
+        }
+        .sheet(isPresented: $model.isAddFriendPresented) { AddFriendView() }
+        .sheet(isPresented: $model.isNotificationsPresented) { NotificationsView() }
         .sheet(isPresented: $model.isFavoriteEditorPresented) {
             FavoriteEditorView()
         }

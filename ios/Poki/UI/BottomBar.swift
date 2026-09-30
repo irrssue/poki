@@ -18,6 +18,17 @@ struct BottomBar: View {
                 .frame(width: 1, height: 26)
 
             Button {
+                model.isAddFriendPresented = true
+            } label: {
+                Image(systemName: "plus")
+                    .font(.title2.weight(.medium))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .accessibilityLabel("Add a friend")
+
+            Rectangle().fill(.white.opacity(0.28)).frame(width: 1, height: 26)
+
+            Button {
                 withAnimation(.snappy) {
                     model.destination = model.destination == .profile ? .home : .profile
                 }
@@ -29,7 +40,7 @@ struct BottomBar: View {
         }
         .font(.title3)
         .foregroundStyle(.white)
-        .frame(width: 156, height: 58)
+        .frame(width: 216, height: 58)
         .background(.black, in: Capsule())
         .buttonStyle(.plain)
         .shadow(color: .black.opacity(0.16), radius: 12, y: 6)

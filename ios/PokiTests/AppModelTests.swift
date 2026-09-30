@@ -5,7 +5,8 @@ import XCTest
 @MainActor
 final class AppModelTests: XCTestCase {
     func testSuccessfulSendClearsDraft() async {
-        let model = AppModel()
+        let model = AppModel(pokeService: PreviewPokeService())
+        model.friends = Friend.previews
         let friend = model.friends[0]
         model.updateDraft("Miss you", for: friend)
 
@@ -16,7 +17,8 @@ final class AppModelTests: XCTestCase {
     }
 
     func testInvalidDraftIsNotStored() {
-        let model = AppModel()
+        let model = AppModel(pokeService: PreviewPokeService())
+        model.friends = Friend.previews
         let friend = model.friends[0]
         model.updateDraft(String(repeating: "x", count: 31), for: friend)
 
