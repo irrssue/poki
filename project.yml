@@ -21,6 +21,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.pokiapp.Poki
+        DEVELOPMENT_TEAM: S9ZZCZZ5BV
         INFOPLIST_KEY_CFBundleDisplayName: Poki
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.social-networking
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true
@@ -42,4 +43,3 @@ targets:
 packages:
   PokiCore:
     path: ios/Packages/PokiCore
-
