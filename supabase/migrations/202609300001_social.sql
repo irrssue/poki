@@ -20,7 +20,7 @@ create table poki_private.pokes (
   id uuid primary key,
   sender uuid not null references poki_private.profiles(id) on delete cascade,
   recipient uuid not null references poki_private.profiles(id) on delete cascade,
-  message text not null check (char_length(message) between 1 and 300 and message !~ '[[:cntrl:]]'),
+  message text not null check (char_length(message) between 1 and 30 and message !~ '[[:cntrl:]]'),
   created_at timestamptz not null default now(),
   read_at timestamptz,
   check (sender <> recipient)
@@ -134,7 +134,7 @@ begin
   perform 1 from poki_private.connections where least(sender,recipient)=least(me,recipient_id)
     and greatest(sender,recipient)=greatest(me,recipient_id) and status='accepted' for update;
   if not found then raise exception 'You can only poke accepted friends.'; end if;
-  if char_length(btrim(message))=0 or char_length(message)>300 or message ~ '[[:cntrl:]]' then raise exception 'Invalid poke message.'; end if;
+  if char_length(btrim(message))=0 or char_length(message)>30 or message ~ '[[:cntrl:]]' then raise exception 'Invalid poke message.'; end if;
   if exists(select 1 from poki_private.pokes where sender=me and created_at>now()-interval '3 seconds') then raise exception 'Wait a moment before your next poke.'; end if;
   perform poki_private.throttle('poke',20);
   insert into poki_private.pokes(id,sender,recipient,message) values(poke_id,me,recipient_id,message);
