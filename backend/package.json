@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && node --test dist/tests/*.test.js",
+    "test": "npm run build && node --test dist/tests/*.test.js tests/*.test.mjs",
     "dev": "node --env-file-if-exists=.env --watch --experimental-strip-types src/server.ts",
     "start": "node --env-file-if-exists=.env dist/src/server.js"
   },

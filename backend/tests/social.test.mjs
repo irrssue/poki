@@ -15,13 +15,13 @@ test('real PostgreSQL enforces account and friendship boundaries', async t => {
     create function auth.uid() returns uuid language sql as
       $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     insert into auth.users values ('${alice}'),('${bob}'),('${eve}');`);
-  await db.exec(await readFile(new URL('../../../supabase/migrations/202609300001_social.sql', import.meta.url), 'utf8'));
-  const actor = async (id: string) => {
+  await db.exec(await readFile(new URL('../../supabase/migrations/202609300001_social.sql', import.meta.url), 'utf8'));
+  const actor = async (id) => {
     await db.exec('reset role');
     await db.query("select set_config('request.jwt.claim.sub',$1,false)", [id]);
     await db.exec('set role authenticated');
   };
-  const snapshot = async () => (await db.query<{ value: { profile: unknown; friends: unknown[]; requests: { id: string; incoming: boolean }[]; pokes: { id: string; unread: boolean }[] } }>('select public.poki_snapshot() as value')).rows[0]!.value;
+  const snapshot = async () => (await db.query('select public.poki_snapshot() as value')).rows[0].value;
   await actor(alice);
   await db.query('select public.poki_create_profile($1,$2)', ['@Irrssue','Alice']);
   await actor(bob);
@@ -37,7 +37,7 @@ test('real PostgreSQL enforces account and friendship boundaries', async t => {
   let a = await snapshot();
   assert.equal(a.requests.length, 1);
   assert.equal(a.friends.length, 0);
-  const request = a.requests[0]!.id;
+  const request = a.requests[0].id;
   await assert.rejects(db.query('select public.poki_respond($1,true)', [request]), /no longer available/);
   const poke = '44444444-4444-4444-8444-444444444444';
   await assert.rejects(db.query('select public.poki_send($1,$2,$3)', [bob,'Hi',poke]), /only poke accepted friends/);
@@ -63,13 +63,13 @@ test('real PostgreSQL enforces account and friendship boundaries', async t => {
   await db.query('select public.poki_read($1)', [[poke]]);
   await actor(bob);
   assert.equal((await snapshot()).pokes.length,1);
-  assert.equal((await snapshot()).pokes[0]!.unread,true);
+  assert.equal((await snapshot()).pokes[0].unread,true);
   await db.query('select public.poki_read($1)', [[poke]]);
-  assert.equal((await snapshot()).pokes[0]!.unread,false);
+  assert.equal((await snapshot()).pokes[0].unread,false);
   await actor(eve);
   await db.query('select public.poki_request($1)', [bob]);
   await actor(bob);
-  const incoming = (await snapshot()).requests[0]!;
+  const incoming = (await snapshot()).requests[0];
   await db.query('select public.poki_respond($1,false)', [incoming.id]);
   await actor(eve);
   await assert.rejects(db.query('select public.poki_request($1)', [bob]), /wait before sending another/);
