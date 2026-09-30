@@ -20,6 +20,10 @@ struct AccountView: View {
                         .foregroundStyle(.secondary)
                 }
                 if model.signedIn {
+                    if let syncError = model.syncError {
+                        Text(syncError).foregroundStyle(.red)
+                        Button("Retry loading account") { Task { await model.refresh() } }
+                    }
                     Section("Your profile") {
                         TextField("Your name", text: $name).textContentType(.name)
                         TextField("@username", text: $username)

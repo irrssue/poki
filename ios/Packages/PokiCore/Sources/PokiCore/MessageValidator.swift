@@ -14,11 +14,11 @@ public enum MessageValidator {
     }
 
     public static func isValid(_ value: String) -> Bool {
-        value.count <= maximumLength && !value.contains(where: { $0.isNewline })
+        value.unicodeScalars.count <= maximumLength && !value.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) && $0.value != 0x200D }) && !value.contains(where: { $0.isNewline })
     }
 
     public static func remainingCharacters(for value: String) -> Int {
-        maximumLength - value.count
+        maximumLength - value.unicodeScalars.count
     }
 }
 

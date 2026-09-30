@@ -11,10 +11,15 @@ final class MessageValidatorTests: XCTestCase {
         XCTAssertFalse(MessageValidator.isValid(String(repeating: "a", count: 31)))
     }
 
-    func testComposedEmojiCountsAsOneCharacter() {
+    func testComposedEmojiMatchesDatabaseCodePointBudget() {
         let family = "👨‍👩‍👧‍👦"
         XCTAssertEqual(family.count, 1)
-        XCTAssertEqual(MessageValidator.remainingCharacters(for: family), 29)
+        XCTAssertEqual(MessageValidator.remainingCharacters(for: family), 23)
+    }
+
+    func testControlCharactersAreRejected() {
+        XCTAssertFalse(MessageValidator.isValid("hi\u{0000}"))
+        XCTAssertFalse(MessageValidator.isValid("hi\tthere"))
     }
 
     func testLineBreaksAreRejected() {

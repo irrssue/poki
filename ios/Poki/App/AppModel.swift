@@ -28,6 +28,7 @@ final class AppModel {
     let accountService: AccountService
     private var sessionGeneration = UUID()
     private var refreshing = false
+    private var attempts: [UUID: (message: String, id: UUID)] = [:]
     var notificationCount: Int { requests.filter(\.incoming).count + receivedPokes.filter(\.unread).count }
 
     private let pokeService: (any PokeService)?
@@ -105,15 +106,14 @@ final class AppModel {
     func signOut() async {
         sessionGeneration = UUID()
         signedIn = false; profile = nil; friends = []; requests = []; receivedPokes = []
-        drafts = [:]; sendingFriendIDs = []; favorite = nil; favoriteStore.save(nil)
+        drafts = [:]; attempts = [:]; sendingFriendIDs = []; favorite = nil; favoriteStore.save(nil)
         feedback = nil; syncError = nil; destination = .home
         isAddFriendPresented = false; isNotificationsPresented = false; isFavoriteEditorPresented = false
         await accountService.signOut()
     }
 
     func updateDraft(_ value: String, for friend: Friend) {
-        guard value.count <= MessageValidator.maximumLength,
-              !value.contains(where: { $0.isNewline }) else { return }
+        guard MessageValidator.isValid(value) else { return }
         drafts[friend.id] = value
     }
 
@@ -125,15 +125,19 @@ final class AppModel {
         let message = MessageValidator.resolvedMessage(from: draft)
         guard MessageValidator.isValid(message) else { return }
         let generation = sessionGeneration
+        let attempt = attempts[friend.id]
+        let pokeID = attempt?.message == message ? attempt!.id : UUID()
+        attempts[friend.id] = (message, pokeID)
         sendingFriendIDs.insert(friend.id)
 
         do {
             if let pokeService {
                 try await pokeService.sendPoke(to: friend.id, message: message)
             } else {
-                let _: EmptyResponse = try await accountService.rpc("poki_send", body: ["recipient_id": friend.id.uuidString, "message": message, "poke_id": UUID().uuidString])
+                let _: EmptyResponse = try await accountService.rpc("poki_send", body: ["recipient_id": friend.id.uuidString, "message": message, "poke_id": pokeID.uuidString])
             }
             guard generation == sessionGeneration else { return }
+            attempts[friend.id] = nil
             if override == nil && drafts[friend.id, default: ""] == draft { drafts[friend.id] = "" }
             feedback = SendFeedback(friendName: friend.name, succeeded: true)
         } catch {
@@ -168,7 +172,7 @@ final class AppModel {
     }
 }
 
-struct SendFeedback: Equatable {
+struct SendFeedback: Equatable, Hashable {
     var friendName: String
     var succeeded: Bool
 }
