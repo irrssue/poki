@@ -30,6 +30,10 @@ test('real PostgreSQL enforces account and friendship boundaries', async t => {
   await actor(eve);
   await db.query('select public.poki_create_profile($1,$2)', ['eve','Eve']);
   await actor(alice);
+  const match = await db.query('select public.poki_search($1) as value', ['@BOB']);
+  assert.equal(match.rows[0].value.person.id, bob);
+  assert.equal(match.rows[0].value.relationship, 'none');
+  assert.equal((await db.query('select public.poki_search($1) as value', ['missing'])).rows[0].value, null);
   await assert.rejects(db.query('select * from poki_private.profiles'), /permission denied/);
   await assert.rejects(db.query('select public.poki_request($1)', [alice]), /cannot add yourself/);
   await db.query('select public.poki_request($1)', [bob]);
