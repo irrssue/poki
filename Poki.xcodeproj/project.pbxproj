@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		1280A601718EC032615F1C74 /* BottomBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA140A34BA6AFF3BE5ED5194 /* BottomBar.swift */; };
 		14D9C22CF981AF32FDA9D310 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C44D969DEE728EF9DC27305 /* ProfileView.swift */; };
+		1EA99E3C7C5ABCCB0DE3AF78 /* AccountConfiguration.plist in Resources */ = {isa = PBXBuildFile; fileRef = 52292E58CAB5A26F33C76161 /* AccountConfiguration.plist */; };
 		5578D7AECE29BC66338D561B /* PokiCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2A4434D4B789C225FC6874E5 /* PokiCore */; };
 		72949323067D4DDB89B5AEAC /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AF50C6F7D241FF4993ED104 /* AccountView.swift */; };
 		7CFA0AC7969FAF4624C93573 /* PokiCore in Frameworks */ = {isa = PBXBuildFile; productRef = 19BBFFC7025D471DB6165916 /* PokiCore */; };
@@ -43,6 +44,7 @@
 		0BD247E5E023594152C212A5 /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
 		1FAF7AABB23E0183A22EC099 /* FavoriteEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteEditorView.swift; sourceTree = "<group>"; };
 		4727BEE926764F4A19D08DF8 /* PokiCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PokiCore; path = ios/Packages/PokiCore; sourceTree = SOURCE_ROOT; };
+		52292E58CAB5A26F33C76161 /* AccountConfiguration.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = AccountConfiguration.plist; sourceTree = "<group>"; };
 		5573446B3297CCEF12C6DB24 /* PokiTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PokiTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5AF50C6F7D241FF4993ED104 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
 		5C44D969DEE728EF9DC27305 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
@@ -141,6 +143,7 @@
 		8E021DEF21C3442C1CE47CBA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				52292E58CAB5A26F33C76161 /* AccountConfiguration.plist */,
 				98455D71F0C6601B0B763A2E /* Assets.xcassets */,
 			);
 			path = Resources;
@@ -317,6 +320,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1EA99E3C7C5ABCCB0DE3AF78 /* AccountConfiguration.plist in Resources */,
 				BCF8B96211EA11CEF7412156 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
