@@ -16,6 +16,7 @@ test('real PostgreSQL enforces account and friendship boundaries', async t => {
       $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     insert into auth.users values ('${alice}'),('${bob}'),('${eve}');`);
   await db.exec(await readFile(new URL('../../supabase/migrations/202609300001_social.sql', import.meta.url), 'utf8'));
+  await db.exec(await readFile(new URL('../../supabase/migrations/202609300002_search_parameter.sql', import.meta.url), 'utf8'));
   const actor = async (id) => {
     await db.exec('reset role');
     await db.query("select set_config('request.jwt.claim.sub',$1,false)", [id]);
