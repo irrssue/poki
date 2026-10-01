@@ -3,12 +3,13 @@ import SwiftUI
 struct AccountView: View {
     @Environment(AppModel.self) private var model
     @State private var email = ""
-    @State private var code = ""
-    @State private var codeSent = false
+    @State private var password = ""
+    @State private var creatingAccount = true
     @State private var name = ""
     @State private var username = ""
     @State private var busy = false
     @State private var error: String?
+    @State private var notice: String?
 
     var body: some View {
         NavigationStack {
@@ -16,7 +17,7 @@ struct AccountView: View {
                 Section {
                     Text(model.signedIn ? "Make it yours." : "A little hello goes a long way.")
                         .font(.title2.weight(.semibold))
-                    Text(model.signedIn ? "Choose a username so friends can find you." : "Sign in or create your account with a code sent to your email.")
+                    Text(model.signedIn ? "Choose a username so friends can find you." : "Your people, one little poke away.")
                         .foregroundStyle(.secondary)
                 }
                 if model.signedIn {
@@ -34,29 +35,35 @@ struct AccountView: View {
                     }
                     Button("Use a different account") { Task { await model.signOut() } }
                 } else {
-                    Section("Email") {
-                        TextField("you@example.com", text: $email)
+                    Section(creatingAccount ? "Create your account" : "Welcome back") {
+                        TextField("Email", text: $email)
                             .keyboardType(.emailAddress).textContentType(.emailAddress)
                             .textInputAutocapitalization(.never).autocorrectionDisabled()
-                            .disabled(codeSent)
-                        if codeSent {
-                            TextField("Email code", text: $code).keyboardType(.numberPad).textContentType(.oneTimeCode)
-                            Button("Verify code") { run { try await model.verify(email: email, code: code) } }
-                                .disabled(code.count < 6)
-                            Button("Send a new code") { run { try await model.accountService.requestCode(email: email) } }
-                            Button("Change email") { codeSent = false; code = ""; error = nil }
-                        } else {
-                            Button("Send sign-in code") {
-                                run {
-                                    email = email.trimmingCharacters(in: .whitespacesAndNewlines)
-                                    try await model.accountService.requestCode(email: email)
-                                    codeSent = true
-                                }
-                            }.disabled(!email.contains("@"))
+                        SecureField("Password", text: $password)
+                            .textContentType(creatingAccount ? .newPassword : .password)
+                        if creatingAccount {
+                            Text("Use at least 8 characters. Your email stays private; friends find you by username.")
+                                .font(.caption).foregroundStyle(.secondary)
                         }
+                        Button(creatingAccount ? "Create account" : "Sign in") {
+                            run {
+                                let email = email.trimmingCharacters(in: .whitespacesAndNewlines)
+                                if creatingAccount {
+                                    let signedIn = try await model.signUp(email: email, password: password)
+                                    if !signedIn {
+                                        notice = "Check your email and follow the confirmation link, then sign in here."
+                                        creatingAccount = false
+                                    }
+                                } else { try await model.signIn(email: email, password: password) }
+                                password = ""
+                            }
+                        }.disabled(!email.contains("@") || (creatingAccount ? password.count < 8 : password.isEmpty))
                     }
-                    if codeSent { Text("Check your inbox for your Poki sign-in code.").font(.footnote) }
+                    Button(creatingAccount ? "Already have an account? Sign in" : "New here? Create an account") {
+                        creatingAccount.toggle(); error = nil; notice = nil; password = ""
+                    }
                 }
+                if let notice { Text(notice).foregroundStyle(.secondary) }
                 if let error { Text(error).foregroundStyle(.red).accessibilityLabel("Error: \(error)") }
                 if busy { ProgressView().frame(maxWidth: .infinity) }
             }

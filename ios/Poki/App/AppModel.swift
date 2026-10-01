@@ -51,6 +51,18 @@ final class AppModel {
         starting = false
     }
 
+    func signIn(email: String, password: String) async throws {
+        try await accountService.signIn(email: email, password: password)
+        signedIn = true
+        try await loadSnapshot()
+    }
+
+    func signUp(email: String, password: String) async throws -> Bool {
+        let authenticated = try await accountService.signUp(email: email, password: password)
+        if authenticated { signedIn = true; try await loadSnapshot() }
+        return authenticated
+    }
+
     func verify(email: String, code: String) async throws {
         try await accountService.verify(email: email, code: code)
         signedIn = true
