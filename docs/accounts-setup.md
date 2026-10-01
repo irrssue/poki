@@ -4,8 +4,8 @@ The development Supabase project is `dpxgiogbdbmpqnxxgoph` (Poki, Canada Central
 `ios/Poki/Resources/AccountConfiguration.plist` contains its URL and **public**
 publishable key. Never put a secret/service-role key or database password in the app.
 
-Apply `supabase/migrations/202609300001_social.sql` once to a new Supabase database.
-The migration has been applied to the development project. The tables live in
+Apply the SQL files in `supabase/migrations/` in filename order to a new Supabase database.
+Both migrations have been applied to the development project. The tables live in
 `poki_private`, are protected by RLS, and have no client grants. Authenticated
 clients call the public RPCs below. Every function derives its actor from
 `auth.uid()`; no request body can choose its sender. The Fastify service remains
@@ -29,11 +29,13 @@ rates are limited per account. Pokes have a 3-second sender cooldown, a 20/minut
 limit, and durable UUID deduplication. The app reuses an uncertain submission's ID
 when retrying the same recipient/message.
 
-Email-code sign-in requires custom SMTP and an OTP email template containing
-`{{ .Token }}` for new and existing accounts. Supabase's default mail service is
-restricted and its default template is a magic link. Do not claim that arbitrary
-users can sign in until mail delivery is configured or the approved development
-password flow is enabled. Sessions are stored in the device Keychain, refresh is
+The app uses email/password signup and sign-in. Confirmation remains enabled on
+the development project until explicitly approved otherwise. Supabase's default
+mail service restricts recipients; custom SMTP is required for verified signup
+by arbitrary users. A development-only alternative is disabling confirmation
+with the project owner's approval; those accounts do not prove email ownership.
+The app handles either configuration and never treats an unconfirmed signup as a
+signed-in session. Sessions are stored in the device Keychain, refresh is
 serialized, and sign-out clears local account state.
 
 Pokes currently appear **inside the app**, not as APNs lock-screen notifications.

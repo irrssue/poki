@@ -1,3 +1,11 @@
+# Current update — September 30, 2026
+
+Account onboarding, shared profiles, username search, request acceptance, and
+in-app pokes are now implemented against the hosted Supabase project. See
+[accounts setup](accounts-setup.md) for deployment, verification, and remaining
+email delivery/APNs prerequisites. The older review below describes the prior
+prototype and is retained as historical context.
+
 # Implementation review — September 28, 2026
 
 ## What exists
