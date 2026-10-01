@@ -4,7 +4,10 @@ Poki is an iOS app for sending a small “thinking of you” notification to an 
 
 ## Current prototype
 
-The current app is a local SwiftUI prototype. It includes a friend list, safe tap-to-poke controls, 30-character message drafts, a configurable favorite person, send feedback, and basic profile/settings screens. Sends use a simulated service until the API and APNs integration are connected.
+The app now includes account onboarding, exact @username search, a centered add
+button, incoming/outgoing friend requests, and an in-app poke inbox. Friendship
+acceptance and poke authorization are enforced by Supabase database functions.
+See [account setup and current delivery limits](docs/accounts-setup.md).
 
 ## Local setup
 
@@ -27,8 +30,7 @@ The bundle identifier in `project.yml` is provisional and must be replaced befor
 ## Backend foundation
 
 The Fastify service currently exposes only `GET /v1/health`. It reports process
-liveness, not database readiness or push delivery. The iOS app still uses simulated
-sends. No social endpoint accepts unauthenticated or simulated production writes.
+liveness, not database readiness or push delivery. The iOS app uses Supabase RPCs for social actions. No social endpoint accepts unauthenticated or simulated production writes.
 
 Use Node **24.21.0**, pinned in `backend/.node-version`, then:
 
