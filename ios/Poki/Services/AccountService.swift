@@ -67,44 +67,9 @@ actor AccountService {
     }
     var isSignedIn: Bool { session != nil }
 
-    func signIn(email: String, password: String) async throws {
-        let value: AccountSession = try await request(path: "auth/v1/token?grant_type=password", body: ["email": email, "password": password], token: nil)
-        try Self.saveSession(value)
-        session = value
-        generation = UUID()
-    }
-    func signUp(email: String, password: String) async throws -> Bool {
-        let value: SignupResponse = try await request(path: "auth/v1/signup?redirect_to=\(ConfirmationCallback.redirectURL.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!)", body: ["email": email, "password": password], token: nil)
-        guard let access = value.access_token, let refresh = value.refresh_token else { return false }
-        let session = AccountSession(access_token: access, refresh_token: refresh, expires_at: value.expires_at)
-        try Self.saveSession(session)
-        self.session = session
-        generation = UUID()
-        return true
-    }
-
-    func confirmEmail(url: URL) async throws {
-        let callback: ConfirmationCallback
-        do { callback = try ConfirmationCallback(url: url) }
-        catch { throw ServiceFailure(message: "This confirmation link is invalid or expired. Request a new confirmation email, or sign in if you already confirmed.") }
-        let currentGeneration = generation
-        // Exchange with the configured Auth server rather than trusting tokens in a URL.
-        let value: AccountSession = try await request(path: "auth/v1/token?grant_type=refresh_token", body: ["refresh_token": callback.refreshToken], token: nil)
-        guard currentGeneration == generation else { throw CancellationError() }
-        try Self.saveSession(value)
-        session = value
-        generation = UUID()
-    }
-
-    func resendConfirmation(email: String) async throws {
-        let _: EmptyResponse = try await request(path: "auth/v1/resend", body: ["email": email, "type": "signup"], token: nil)
-    }
-
-    func requestCode(email: String) async throws {
-        let _: EmptyResponse = try await request(path: "auth/v1/otp", body: ["email": email], token: nil)
-    }
-    func verify(email: String, code: String) async throws {
-        let value: AccountSession = try await request(path: "auth/v1/verify", body: ["email": email, "token": code, "type": "email"], token: nil)
+    // Supabase creates the account on an Apple ID's first sign-in and reuses it afterwards.
+    func signInWithApple(idToken: String, nonce: String) async throws {
+        let value: AccountSession = try await request(path: "auth/v1/token?grant_type=id_token", body: ["provider": "apple", "id_token": idToken, "nonce": nonce], token: nil)
         try Self.saveSession(value)
         session = value
         generation = UUID()
@@ -176,9 +141,7 @@ actor AccountService {
             let message: String
             if failure?.code == "P0001", let safeMessage = failure?.message { message = safeMessage }
             else if response.statusCode == 429 { message = "Please wait a minute before trying again." }
-            else if path.contains("grant_type=password") { message = "Could not sign in. Check your email and password, and confirm your email if requested." }
-            else if path.contains("signup") { message = "Could not create your account. Use a valid email and a password of at least 8 characters, or try signing in." }
-            else if path.contains("verify") { message = "That code is invalid or expired. Request a new code and try again." }
+            else if path.contains("grant_type=id_token") { message = "Could not sign in with Apple. Please try again." }
             else if response.statusCode == 401 { message = "Your session expired. Sign out and sign in again." }
             else { message = "Could not complete this action. Please try again." }
             throw ServiceFailure(message: message)
@@ -212,5 +175,3 @@ actor AccountService {
 struct EmptyResponse: Codable, Sendable {}
 private struct ResponseBody: Encodable { let request_id: UUID; let accept: Bool }
 private struct RemoteError: Decodable { let code: String?; let message: String? }
-
-private struct SignupResponse: Decodable { let access_token: String?; let refresh_token: String?; let expires_at: Double? }

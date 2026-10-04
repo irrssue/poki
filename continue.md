@@ -7,7 +7,7 @@ current state. Start by checking `git status` and recent commits.
 ## Current state
 
 - Native SwiftUI app, iOS 17 minimum, generated with XcodeGen from `project.yml`.
-  Email/password accounts, profile creation, exact @username search, accepted
+  Sign in with Apple accounts, profile creation, exact @username search, accepted
   friendships, requests, in-app pokes, and local favorite configuration exist.
 - Social actions call authenticated Supabase RPCs directly. `backend/` is a
   Fastify health-only service; no social API or push worker is hosted.
@@ -28,12 +28,19 @@ current state. Start by checking `git status` and recent commits.
   Muting privately hides incoming pokes and their badge contribution, preserves
   friendships/sending, and survives removal/blocking. Unmuting restores recent
   pokes with their existing read state. Account deletion cascades mute rows.
-- Commit `7db8c18` fixed signup confirmation redirects. Hosted Auth Site URL and
-  its exact allowed redirect were saved as `com.pokiapp.poki://auth/confirm`.
-  The app registers that scheme, explicitly requests it at signup, validates
-  signup callbacks and exchanges refresh tokens with the configured Auth server
-  before saving the session in Keychain. Sign-in includes confirmation resend.
-- Email confirmation remains enabled. No custom SMTP has been configured.
+- **Sign in with Apple is the only sign-in** (replaced email/password, confirmation
+  links, resend and the `com.pokiapp.poki` URL scheme). One "Continue with Apple"
+  button: `AccountView` sends Apple a hashed `AppleSignInNonce` (PokiCore), then
+  `AccountService.signInWithApple` exchanges the identity token + raw nonce at
+  `auth/v1/token?grant_type=id_token`; Supabase creates the account on first use
+  and signs in afterwards. Apple's first-time full name prefills profile setup.
+  `project.yml` adds the `com.apple.developer.applesignin` entitlement.
+- **Team `S9ZZCZZ5BV` is a free Personal team.** Apple will not provision Sign in
+  with Apple or Push Notifications for it, so signed device builds fail at
+  provisioning. This was already true since the push entitlement landed; the
+  pre-Apple-sign-in commit fails identically. Simulator builds with
+  `CODE_SIGNING_ALLOWED=NO` still compile and test, but Apple sign-in cannot
+  complete without a provisioned App ID.
 - **Push foundation is built but not live.** `202610040003_push.sql` adds private
   device registrations, an outbox queued by a trigger in the poke transaction,
   leased worker RPCs and dispatch-time friendship/block/mute rechecks.
@@ -52,18 +59,18 @@ current state. Start by checking `git status` and recent commits.
 
 - All 20 backend tests passed after the mute increment. PGlite applies every SQL
   migration in filename order and exercises authorization and state transitions.
-- All seven shared Swift package tests passed after the redirect fix, including
-  rejection of foreign/malformed/expired callbacks and duplicate refresh tokens.
-- Simulator app compilation and signed physical-device build succeeded. The
-  updated app was installed and launched on the connected iPhone.
+- After the Apple sign-in switch: all 8 shared Swift package tests (including the
+  nonce hash/uniqueness tests) and all 13 simulator app tests passed on the booted
+  iPhone 18 Pro simulator. Sign in with Apple itself has NOT been exercised end to
+  end (blocked on the paid team and Supabase provider setup below).
+- An earlier signed device build succeeded before the push entitlement existed;
+  signed device builds now fail on the Personal team (see above).
 - All 13 simulator app tests (including push registration) and 38 backend tests
   passed after the push consolidation on the booted iPhone 18 Pro simulator.
   GitHub Actions results were not checked. Push delivery has not been tested on
   hardware.
 - Full Xcode now exists at `/Applications/Xcode.app`. The default `xcode-select`
   still points to Command Line Tools; use the explicit DEVELOPER_DIR below.
-- The fresh email-link round trip has NOT been verified. Older emails may retain
-  localhost; an already-used link may have confirmed the address before redirecting.
 - Verified October 4, 2026: the homelab health URL returned `{"status":"ok"}`
   (HTTP 200), and on the server both `api` (healthy) and `tunnel` were up,
   running release `1418e039e3e1734bb49e0a22ae5ffad6e2d3a7ae` (= `main` at the time).
@@ -78,13 +85,14 @@ current state. Start by checking `git status` and recent commits.
 
 ## Next steps, in order
 
-1. **Finish confirmation acceptance testing.** On the updated iPhone app, try
-   signing in if the earlier link was clicked. Otherwise use Resend confirmation
-   email and open the newest link on the same phone. Check return to Poki,
-   authenticated profile setup, relaunch persistence, and sign-out. Check expired
-   links show a safe error. Coordinate inbox/password interaction with the owner;
-   never log real callback URLs or tokens. Do not disable email confirmation as
-   a shortcut.
+1. **Make Sign in with Apple work (blocked on owner).** The owner must upgrade to
+   the paid Apple Developer Program, and in the Supabase dashboard enable the
+   Apple provider with `com.pokiapp.Poki` in Client IDs (no secret needed for
+   native). Optionally disable the Email provider. Then build to the iPhone with
+   automatic signing (`-allowProvisioningUpdates`), and test first sign-in (account
+   creation + name prefill), relaunch persistence, sign-out, signing back in to the
+   same account, and Hide My Email. Existing email test accounts are not migrated;
+   Supabase links an Apple identity to one only when the verified emails match.
 2. **Apply the missing hosted migrations (confirmed absent; blocked on owner
    access).** Ask the owner to run `! npx supabase login` in the session (browser
    approval), then `npx supabase link --project-ref dpxgiogbdbmpqnxxgoph` (may
@@ -112,9 +120,9 @@ current state. Start by checking `git status` and recent commits.
   login for migrations, an SMTP provider and sender domain, an Apple Developer
   APNs `.p8` key, and two iPhones for acceptance testing. The owner has not yet
   decided whether to start the push foundation code; confirm before beginning.
-- Custom SMTP is still needed for verified signup by arbitrary users; the built-in
-  mailer's restrictions remain. The owner received a confirmation email, which
-  does not establish unrestricted delivery. Keep confirmation enabled.
+- Custom SMTP is no longer needed for sign-in now that accounts come from Apple.
+- A paid Apple Developer Program membership is required for Sign in with Apple,
+  push, and installing the current app on a device.
 - APNs requires the owner's Apple Developer key, capability/entitlement, and a
   deployed worker with securely stored credentials. No secrets belong in iOS.
 - Hosted migration access requires the owner to sign in (see step 2) or provide
@@ -124,6 +132,8 @@ current state. Start by checking `git status` and recent commits.
 ## Later backlog
 
 - Report-user controls and a private reporting/moderation workflow.
+- Revoke Apple tokens on account deletion (App Store requirement for Sign in with
+  Apple): needs a server-side Sign in with Apple key and the authorization code.
 - Match the spec's 30 visible characters (graphemes) on client and server;
   current validation uses 30 Unicode code points. Add shared Unicode fixtures.
 - Make all non-editing friend-row areas poke targets, add accepted-send haptics,
@@ -157,7 +167,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild test -projec
 
 Use an available simulator rather than assuming the example device exists.
 Regenerate with `xcodegen generate` after changing `project.yml`; keep the generated
-project and `ios/Poki/Resources/Info.plist` consistent with URL-scheme registration.
+project, `ios/Poki/Resources/Info.plist` and `Poki.entitlements` consistent with it.
 
 ## Working conventions
 

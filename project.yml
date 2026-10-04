@@ -20,14 +20,12 @@ targets:
       path: ios/Poki/Resources/Info.plist
       properties:
         PokiAPNSEnvironment: "$(POKI_APNS_ENVIRONMENT)"
-        CFBundleURLTypes:
-          - CFBundleURLName: com.pokiapp.poki.auth
-            CFBundleURLSchemes:
-              - com.pokiapp.poki
     entitlements:
       path: ios/Poki/Resources/Poki.entitlements
       properties:
         aps-environment: "$(APS_ENVIRONMENT)"
+        com.apple.developer.applesignin:
+          - Default
     dependencies:
       - package: PokiCore
     settings:

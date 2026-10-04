@@ -27,7 +27,6 @@ final class AppModel {
     var signedIn = false
     var starting = true
     var syncError: String?
-    var confirmationError: String?
     let notifications = NotificationController.shared
     let pushRegistration: PushRegistration
     private var signingOut = false
@@ -63,34 +62,10 @@ final class AppModel {
         openNotification()
     }
 
-    func signIn(email: String, password: String) async throws {
-        try await accountService.signIn(email: email, password: password)
+    func signInWithApple(idToken: String, nonce: String) async throws {
+        try await accountService.signInWithApple(idToken: idToken, nonce: nonce)
         signedIn = true
         try await loadSnapshot()
-    }
-
-    func signUp(email: String, password: String) async throws -> Bool {
-        let authenticated = try await accountService.signUp(email: email, password: password)
-        if authenticated { signedIn = true; try await loadSnapshot() }
-        return authenticated
-    }
-
-    func verify(email: String, code: String) async throws {
-        try await accountService.verify(email: email, code: code)
-        signedIn = true
-        try await loadSnapshot()
-    }
-
-    func confirmEmail(url: URL) async {
-        guard !signedIn else { return }
-        guard url.scheme?.lowercased() == "com.pokiapp.poki" else { return }
-        do {
-            try await accountService.confirmEmail(url: url)
-            signedIn = true
-            starting = false
-            await refresh()
-        } catch is CancellationError { return }
-        catch { confirmationError = error.localizedDescription }
     }
 
     func createProfile(username: String, name: String) async throws {

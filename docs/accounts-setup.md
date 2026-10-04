@@ -42,25 +42,32 @@ rates are limited per account. Pokes have a 3-second sender cooldown, a 20/minut
 limit, and durable UUID deduplication. The app reuses an uncertain submission's ID
 when retrying the same recipient/message.
 
-The app uses email/password signup and sign-in. Confirmation remains enabled on
-the development project until explicitly approved otherwise. Supabase's default
-mail service restricts recipients; custom SMTP is required for verified signup
-by arbitrary users. A development-only alternative is disabling confirmation
-with the project owner's approval; those accounts do not prove email ownership.
-The hosted Auth Site URL and exact allowed redirect are now
-`com.pokiapp.poki://auth/confirm`, replacing the default localhost destination.
-Signup explicitly requests that redirect. iOS registers the scheme and handles
-signup callbacks, exchanges the refresh token with this project's Auth server,
-then saves the session in Keychain and loads profile setup. Callback URLs must
-never be logged because they contain credentials. Expired/invalid links show a
-safe error. The sign-in screen offers Resend confirmation email. Install the
-updated app before opening a new link on the iPhone; older emails may still
-contain localhost, and already-used links require sign-in or a fresh email.
-See [Supabase mobile deep linking](https://supabase.com/docs/guides/auth/native-mobile-deep-linking?platform=swift).
+Sign in with Apple is the only way into the app. One "Continue with Apple" button
+covers both cases: Supabase creates the account the first time an Apple ID signs in
+and returns the existing account afterwards. The app sends Apple a SHA-256 hashed
+single-use nonce, then exchanges the identity token and raw nonce at
+`auth/v1/token?grant_type=id_token` (provider `apple`); Supabase verifies both, so
+no tokens arrive by URL and the old `com.pokiapp.poki://auth/confirm` scheme is gone.
+Apple shares the user's name only on the first authorization; the app uses it to
+prefill profile setup. The email (possibly an Apple private relay address) stays
+private; friends find people by username.
 
-The app handles either configuration and never treats an unconfirmed signup as a
-signed-in session. Sessions are stored in the device Keychain, refresh is
-serialized, and sign-out clears local account state.
+Required setup, none of which is in git:
+
+1. **Paid Apple Developer Program membership.** Team `S9ZZCZZ5BV` is currently a
+   free Personal team. Apple refuses to provision Sign in with Apple (and Push
+   Notifications) for Personal teams, so device builds fail at signing until the
+   team is upgraded. The entitlement (`com.apple.developer.applesignin`) is in
+   `project.yml`; automatic signing then enables the capability on the App ID.
+2. **Supabase Apple provider.** Dashboard → Authentication → Sign In / Providers →
+   Apple: enable it and add `com.pokiapp.Poki` to Client IDs. Native sign-in does
+   not need the secret key/Services ID fields. Optionally disable the Email
+   provider so accounts can only be created through Apple.
+3. Before App Store release, account deletion must also revoke the user's Apple
+   tokens through Apple's REST API (server-side, needs a Sign in with Apple key).
+
+Sessions are stored in the device Keychain, refresh is serialized, and sign-out
+clears local account state.
 
 Pokes always appear **inside the app**. Lock-screen delivery is implemented but
 not yet live: the app requests permission from Profile, registers its APNs token
@@ -90,6 +97,6 @@ pending/declined pokes, deduplication, and recipient-only unread updates.
 
 Run `swift test --package-path ios/Packages/PokiCore` and the `Poki` Xcode test
 scheme for validation and account/send-state tests. Real-device acceptance test:
-create two accounts, choose usernames, search/add, verify no poke target exists
-before acceptance, accept from the second account's bell, then send a poke and
+create two accounts with different Apple IDs, choose usernames, search/add, verify
+no poke target exists before acceptance, accept from the second account's bell, then send a poke and
 refresh the second account's inbox. Repeat after signing out and signing back in.

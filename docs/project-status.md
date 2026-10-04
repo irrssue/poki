@@ -30,6 +30,15 @@ succeeded; the app was installed and launched on the connected iPhone. Simulator
 app tests stalled before starting and were interrupted. The final email round
 trip remains to be checked using a freshly sent email on the phone.
 
+October 4, 2026: replaced email/password accounts with Sign in with Apple only.
+A single "Continue with Apple" button exchanges Apple's identity token and a
+hashed single-use nonce with Supabase, which creates the account on first use and
+signs in afterwards. The email confirmation callback, resend flow and URL scheme
+were removed. Shared nonce tests and all simulator app tests pass. Going live
+needs a paid Apple Developer team (the current Personal team cannot provision
+Sign in with Apple or Push) and the Supabase Apple provider; see
+[accounts setup](accounts-setup.md).
+
 The older review below describes the prior
 prototype and is retained as historical context.
 
