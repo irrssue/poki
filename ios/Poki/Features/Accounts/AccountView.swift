@@ -51,13 +51,21 @@ struct AccountView: View {
                                 if creatingAccount {
                                     let signedIn = try await model.signUp(email: email, password: password)
                                     if !signedIn {
-                                        notice = "Check your email and follow the confirmation link, then sign in here."
+                                        notice = "Check your email on this iPhone and tap the confirmation link to return to Poki. If you already tapped it, try signing in."
                                         creatingAccount = false
                                     }
                                 } else { try await model.signIn(email: email, password: password) }
                                 password = ""
                             }
                         }.disabled(!email.contains("@") || (creatingAccount ? password.count < 8 : password.isEmpty))
+                    }
+                    if !creatingAccount {
+                        Button("Resend confirmation email") {
+                            run {
+                                try await model.accountService.resendConfirmation(email: email.trimmingCharacters(in: .whitespacesAndNewlines))
+                                notice = "If confirmation is needed, a new email has been sent. Open the newest link on this iPhone."
+                            }
+                        }.disabled(!email.contains("@"))
                     }
                     Button(creatingAccount ? "Already have an account? Sign in" : "New here? Create an account") {
                         creatingAccount.toggle(); error = nil; notice = nil; password = ""

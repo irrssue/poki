@@ -27,6 +27,7 @@ final class AppModel {
     var signedIn = false
     var starting = true
     var syncError: String?
+    var confirmationError: String?
     let accountService: AccountService
     private var sessionGeneration = UUID()
     private var refreshing = false
@@ -69,6 +70,17 @@ final class AppModel {
         try await accountService.verify(email: email, code: code)
         signedIn = true
         try await loadSnapshot()
+    }
+
+    func confirmEmail(url: URL) async {
+        guard url.scheme?.lowercased() == "com.pokiapp.poki" else { return }
+        do {
+            try await accountService.confirmEmail(url: url)
+            signedIn = true
+            starting = false
+            await refresh()
+        } catch is CancellationError { return }
+        catch { confirmationError = error.localizedDescription }
     }
 
     func createProfile(username: String, name: String) async throws {

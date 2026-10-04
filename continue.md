@@ -62,6 +62,26 @@ in `supabase/migrations/` in filename order. All 20 backend tests pass.
 - Backend suite and shared Swift build pass; changed Swift sources pass syntax
   parsing. Full iOS build/tests still need Xcode. No APNs delivery is implemented.
 
+## Email confirmation redirect fixed
+
+- Hosted Site URL and exact allowed redirect now use
+  `com.pokiapp.poki://auth/confirm`; localhost has been replaced.
+- The app registers this scheme, requests it on signup, handles signup callbacks,
+  and exchanges callback refresh tokens with the configured Auth server before
+  saving the session. Errors are shown without exposing credentials.
+- Sign-in includes Resend confirmation email. Use a newly sent link on the iPhone
+  with the updated app installed. A previously used link may already have confirmed
+  the email; try signing in in that case.
+- Full Xcode is now installed at `/Applications/Xcode.app`; use
+  `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` for builds/tests.
+  The default xcode-select still points at Command Line Tools.
+
+Verification for the confirmation fix: all seven shared package tests pass.
+The iOS app compiled for simulator and a signed physical-device build succeeded;
+the updated app was installed and launched on the connected iPhone. The simulator
+app test run stalled before starting tests and was interrupted. A real newly
+sent email-link round trip still needs the user's inbox interaction.
+
 ## Not verified
 
 - This Mac has only Apple's Command Line Tools (no full Xcode), so the iOS app was

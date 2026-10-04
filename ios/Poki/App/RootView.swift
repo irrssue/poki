@@ -21,6 +21,15 @@ struct RootView: View {
                 .safeAreaInset(edge: .bottom) { BottomBar().padding(.bottom, 8) }
             }
         }
+        .onOpenURL { url in Task { await model.confirmEmail(url: url) } }
+        .alert("Could not confirm email", isPresented: Binding(
+            get: { model.confirmationError != nil },
+            set: { if !$0 { model.confirmationError = nil } }
+        )) {
+            Button("OK") { model.confirmationError = nil }
+        } message: {
+            Text(model.confirmationError ?? "Please try again.")
+        }
         .background(Color(.systemBackground))
         .task { await model.start() }
         .task(id: scenePhase) {

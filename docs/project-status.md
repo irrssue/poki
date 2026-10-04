@@ -20,6 +20,16 @@ so preferences can be undone. Integration tests cover ownership, reversibility,
 friendship preservation, sending, auth denial, and deletion cascade. Both October 4
 migrations still need hosted deployment. Reporting and APNs remain pending.
 
+October 4, 2026: replaced the hosted localhost Auth redirect with Poki's exact
+mobile callback. Added URL scheme registration, explicit signup redirect,
+validated callback parsing, Auth refresh exchange, and confirmation resend.
+Callback parser tests cover malformed links, foreign routes, duplicate tokens,
+and expired links. Full Xcode is installed; use its explicit DEVELOPER_DIR.
+All seven shared Swift tests pass. Simulator compilation and signed device build
+succeeded; the app was installed and launched on the connected iPhone. Simulator
+app tests stalled before starting and were interrupted. The final email round
+trip remains to be checked using a freshly sent email on the phone.
+
 The older review below describes the prior
 prototype and is retained as historical context.
 

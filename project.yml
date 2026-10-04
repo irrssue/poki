@@ -16,6 +16,13 @@ targets:
     platform: iOS
     sources:
       - path: ios/Poki
+    info:
+      path: ios/Poki/Resources/Info.plist
+      properties:
+        CFBundleURLTypes:
+          - CFBundleURLName: com.pokiapp.poki.auth
+            CFBundleURLSchemes:
+              - com.pokiapp.poki
     dependencies:
       - package: PokiCore
     settings:

@@ -74,13 +74,30 @@ actor AccountService {
         generation = UUID()
     }
     func signUp(email: String, password: String) async throws -> Bool {
-        let value: SignupResponse = try await request(path: "auth/v1/signup", body: ["email": email, "password": password], token: nil)
+        let value: SignupResponse = try await request(path: "auth/v1/signup?redirect_to=\(ConfirmationCallback.redirectURL.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!)", body: ["email": email, "password": password], token: nil)
         guard let access = value.access_token, let refresh = value.refresh_token else { return false }
         let session = AccountSession(access_token: access, refresh_token: refresh, expires_at: value.expires_at)
         try Self.saveSession(session)
         self.session = session
         generation = UUID()
         return true
+    }
+
+    func confirmEmail(url: URL) async throws {
+        let callback: ConfirmationCallback
+        do { callback = try ConfirmationCallback(url: url) }
+        catch { throw ServiceFailure(message: "This confirmation link is invalid or expired. Request a new confirmation email, or sign in if you already confirmed.") }
+        let currentGeneration = generation
+        // Exchange with the configured Auth server rather than trusting tokens in a URL.
+        let value: AccountSession = try await request(path: "auth/v1/token?grant_type=refresh_token", body: ["refresh_token": callback.refreshToken], token: nil)
+        guard currentGeneration == generation else { throw CancellationError() }
+        try Self.saveSession(value)
+        session = value
+        generation = UUID()
+    }
+
+    func resendConfirmation(email: String) async throws {
+        let _: EmptyResponse = try await request(path: "auth/v1/resend", body: ["email": email, "type": "signup"], token: nil)
     }
 
     func requestCode(email: String) async throws {

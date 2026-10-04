@@ -53,6 +53,7 @@
 		76601AA69A8E91FF0ADD58EC /* AddFriendView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFriendView.swift; sourceTree = "<group>"; };
 		7F41F51A64258034A150FA0C /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		98455D71F0C6601B0B763A2E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A16BAD3E5EBEC8A662D42DFB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		AAE5493CE2AA3B6C0860D230 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		AEDA5A72B3C053F932A6BDC9 /* FriendRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendRow.swift; sourceTree = "<group>"; };
 		BE5F51DA0285BA63EC97ADF5 /* FeedbackBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackBanner.swift; sourceTree = "<group>"; };
@@ -145,6 +146,7 @@
 			children = (
 				52292E58CAB5A26F33C76161 /* AccountConfiguration.plist */,
 				98455D71F0C6601B0B763A2E /* Assets.xcassets */,
+				A16BAD3E5EBEC8A662D42DFB /* Info.plist */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -450,6 +452,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = S9ZZCZZ5BV;
+				INFOPLIST_FILE = ios/Poki/Resources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Poki;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -553,6 +556,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = S9ZZCZZ5BV;
+				INFOPLIST_FILE = ios/Poki/Resources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Poki;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

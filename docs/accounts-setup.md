@@ -45,6 +45,17 @@ the development project until explicitly approved otherwise. Supabase's default
 mail service restricts recipients; custom SMTP is required for verified signup
 by arbitrary users. A development-only alternative is disabling confirmation
 with the project owner's approval; those accounts do not prove email ownership.
+The hosted Auth Site URL and exact allowed redirect are now
+`com.pokiapp.poki://auth/confirm`, replacing the default localhost destination.
+Signup explicitly requests that redirect. iOS registers the scheme and handles
+signup callbacks, exchanges the refresh token with this project's Auth server,
+then saves the session in Keychain and loads profile setup. Callback URLs must
+never be logged because they contain credentials. Expired/invalid links show a
+safe error. The sign-in screen offers Resend confirmation email. Install the
+updated app before opening a new link on the iPhone; older emails may still
+contain localhost, and already-used links require sign-in or a fresh email.
+See [Supabase mobile deep linking](https://supabase.com/docs/guides/auth/native-mobile-deep-linking?platform=swift).
+
 The app handles either configuration and never treats an unconfirmed signup as a
 signed-in session. Sessions are stored in the device Keychain, refresh is
 serialized, and sign-out clears local account state.
