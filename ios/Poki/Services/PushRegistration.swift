@@ -15,7 +15,7 @@ extension AccountService: PushRegistrationAPI {
     }
 }
 
-struct PushRegistrationRecord: Codable {
+struct PushRegistrationRecord: Codable, Equatable {
     let id: UUID
     let owner: UUID
 }
@@ -81,11 +81,9 @@ struct PushRegistrationRecord: Codable {
             guard !suspended, self.owner == owner else { return }
             if uploadedToken == token, let uploadedAt, Date().timeIntervalSince(uploadedAt) < 86400 { return }
             do {
+                // Keychain outlives reinstalls; the server moves this token from a previous owner.
                 let saved = try storage.load()
-                guard saved == nil || saved?.owner == owner else {
-                    throw ServiceFailure(message: "Sign in to your previous account and sign out before enabling notifications here.")
-                }
-                let record = saved ?? PushRegistrationRecord(id: UUID(), owner: owner)
+                let record = saved?.owner == owner ? saved! : PushRegistrationRecord(id: UUID(), owner: owner)
                 // Persist before uploading: a lost response can still mean server success.
                 try storage.save(record)
                 try await api.registerPush(id: record.id, token: token, environment: environment)

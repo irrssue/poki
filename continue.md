@@ -33,8 +33,20 @@ current state. Start by checking `git status` and recent commits.
   The app registers that scheme, explicitly requests it at signup, validates
   signup callbacks and exchanges refresh tokens with the configured Auth server
   before saving the session in Keychain. Sign-in includes confirmation resend.
-- Email confirmation remains enabled. No custom SMTP or APNs delivery has been
-  configured in this work. Pokes currently appear only inside Poki.
+- Email confirmation remains enabled. No custom SMTP has been configured.
+- **Push foundation is built but not live.** `202610040003_push.sql` adds private
+  device registrations, an outbox queued by a trigger in the poke transaction,
+  leased worker RPCs and dispatch-time friendship/block/mute rechecks.
+  `202610040004_push_rotation.sql` lets the newest account own an APNs token
+  (Keychain survives reinstall) and prunes expired devices/push work in cleanup.
+  `backend/src/worker.ts` is the APNs HTTP/2 worker (not yet deployed or
+  credentialed). iOS: `NotificationController` (permission, token, routing, single
+  `PokiAppDelegate`) and `PushRegistration` (serialized Keychain-backed device
+  registration; sign-out waits for server removal). Tapping a push opens the inbox
+  after checking it belongs to the signed-in account. Debug builds register as
+  `sandbox`, Release as `production`; `Poki.entitlements` sets `aps-environment`.
+- Two parallel push UIs were committed by mistake on October 4 (`79eed3c`,
+  `9d4ccf8`); they were consolidated into the single path above.
 
 ## Verification and limits
 
@@ -44,8 +56,10 @@ current state. Start by checking `git status` and recent commits.
   rejection of foreign/malformed/expired callbacks and duplicate refresh tokens.
 - Simulator app compilation and signed physical-device build succeeded. The
   updated app was installed and launched on the connected iPhone.
-- Simulator app tests stalled before starting and were interrupted; do not claim
-  the full app test suite passed. GitHub Actions results were not checked.
+- All 13 simulator app tests (including push registration) and 38 backend tests
+  passed after the push consolidation on the booted iPhone 18 Pro simulator.
+  GitHub Actions results were not checked. Push delivery has not been tested on
+  hardware.
 - Full Xcode now exists at `/Applications/Xcode.app`. The default `xcode-select`
   still points to Command Line Tools; use the explicit DEVELOPER_DIR below.
 - The fresh email-link round trip has NOT been verified. Older emails may retain
@@ -53,7 +67,8 @@ current state. Start by checking `git status` and recent commits.
 - Verified October 4, 2026: the homelab health URL returned `{"status":"ok"}`
   (HTTP 200), and on the server both `api` (healthy) and `tunnel` were up,
   running release `1418e039e3e1734bb49e0a22ae5ffad6e2d3a7ae` (= `main` at the time).
-- **Verified October 4, 2026: the October 4 migrations are NOT applied live.**
+- **Verified October 4, 2026: the October 4 migrations are NOT applied live**
+  (now four: safety, mute, push, push_rotation).
   Probing the hosted Data API with the publishable key returned `PGRST202`
   (function not found) for `poki_block(person_id)` and `poki_mute(person_id)`,
   while `poki_request`/`poki_snapshot` exist (`42501` permission denied for anon).
@@ -81,19 +96,15 @@ current state. Start by checking `git status` and recent commits.
    filtering. Account deletion is destructive; use explicitly disposable test
    accounts with appropriate authorization. Check `cron.job` for `poki-cleanup`
    when pg_cron is available; cleanup scheduling is conditional.
-3. **Recover simulator app tests and check CI.** Resolve the simulator boot/test
-   launch stall, then run the Poki test scheme. Do not reinstall tools or change
-   global Xcode selection unnecessarily. Preserve existing signing/team settings.
-4. **Next substantial engineering increment: durable push foundation.** Add a
-   private device-registration table and authenticated RPC with token ownership,
-   APNs environment, rotation, and sign-out lifecycle. Add an outbox atomically
-   with poke insertion, preserving idempotency. Test no duplicate dispatch jobs,
-   rollback on failures, and private-table/actor boundaries. Then implement the
-   APNs HTTP/2 worker with bounded retries, expiration, token invalidation, and
-   current friendship/block/mute checks before dispatch. Configure credentials
-   and hosting separately; do not claim visible push delivery until tested on
-   hardware. Add contextual permission UI and notification routing. Poke-back
-   follows once delivery is reliable.
+3. **Check CI** for the latest commits.
+4. **Make push live (blocked on owner credentials).** Apply the push migrations,
+   then deploy `worker.ts` to the homelab next to `api` with `SUPABASE_URL`,
+   `SUPABASE_SERVICE_KEY_FILE`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`
+   (`com.pokiapp.Poki`) and `APNS_KEY_FILE` supplied as files/secrets outside git.
+   Confirm the Push Notifications capability on the App ID for team `S9ZZCZZ5BV`.
+   Test on two iPhones: permission, delivery, mute/block suppression, tap routing,
+   sign-out removal, and account switch on one phone. Poke-back follows once
+   delivery is reliable.
 
 ## External prerequisites
 

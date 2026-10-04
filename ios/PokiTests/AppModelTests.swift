@@ -6,7 +6,7 @@ import XCTest
 final class AppModelTests: XCTestCase {
     private func model(service: any PokeService = PreviewPokeService()) -> AppModel {
         let defaults = UserDefaults(suiteName: "PokiTests.\(UUID())")!
-        let model = AppModel(pokeService: service, favoriteStore: FavoriteStore(defaults: defaults))
+        let model = AppModel(pokeService: service, favoriteStore: FavoriteStore(defaults: defaults), pushStorage: MemoryPushStorage())
         model.friends = Friend.previews
         return model
     }

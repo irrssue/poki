@@ -276,7 +276,6 @@ test('push registrations enforce ownership, rotation, privacy and sign-out', asy
   const {db,actor,send,claim,payload} = await pushFixture(t);
   await actor(eve);
   await assert.rejects(db.query('select poki_register_device($1,$2,$3)',[device,token,'sandbox']),/unavailable/);
-  await assert.rejects(db.query('select poki_register_device($1,$2,$3)',[pokeID,token,'sandbox']),/unavailable/);
   await db.query('select poki_unregister_device($1)',[device]);
   await assert.rejects(db.query('select * from poki_private.devices'),/permission denied/);
   for (const query of ['select poki_claim_push()', 'select poki_push_payload($1,$1)', "select poki_finish_push($1,$1,'sent')"]) {
@@ -355,4 +354,36 @@ test('old APNs invalidation does not delete a refreshed registration',async t=>{
   await db.query("select poki_finish_push($1,$2,'invalid',$3)",[job.id,job.lease_id,Date.now()-60000]);
   await db.exec('reset role');
   assert.equal((await db.query('select count(*)::int n from poki_private.devices')).rows[0].n,1);
+});
+
+test('a reinstalled phone moves its token to the newly signed-in account',async t=>{
+  const {db,actor,send,claim,worker}=await pushFixture(t);
+  await send();
+  const eveDevice='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+  await actor(eve);
+  await db.query('select poki_register_device($1,$2,$3)',[eveDevice,token,'sandbox']);
+  // Bob's queued delivery must not reach the phone Eve now uses.
+  assert.equal(await claim(),null);
+  await db.exec('reset role');
+  assert.deepEqual((await db.query('select id,owner from poki_private.devices')).rows,[{id:eveDevice,owner:eve}]);
+  assert.equal((await db.query('select count(*)::int n from poki_private.push_deliveries')).rows[0].n,0);
+  // The same token in the other APNs environment is a different registration.
+  await actor(bob);
+  await db.query('select poki_register_device($1,$2,$3)',[device,token,'production']);
+  await db.exec('reset role');
+  assert.equal((await db.query('select count(*)::int n from poki_private.devices')).rows[0].n,2);
+  await actor(eve);
+  await assert.rejects(db.query('select poki_register_device($1,$2,$3)',[device,token,'sandbox']),/unavailable/);
+  await worker();
+});
+
+test('cleanup drops expired registrations and stale push work',async t=>{
+  const {db,send}=await pushFixture(t);
+  await send();
+  await db.exec(`reset role; update poki_private.devices set expires_at=now()-interval '1 second';
+    update poki_private.push_outbox set expires_at=now()-interval '2 days'; select poki_private.cleanup();`);
+  for (const table of ['devices','push_outbox','push_deliveries']) {
+    assert.equal((await db.query(`select count(*)::int n from poki_private.${table}`)).rows[0].n,0);
+  }
+  assert.equal((await db.query('select count(*)::int n from poki_private.pokes')).rows[0].n,1);
 });

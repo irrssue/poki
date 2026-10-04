@@ -8,7 +8,9 @@ Apply the SQL files in `supabase/migrations/` in filename order to a new Supabas
 The first two migrations have been applied to the development project.
 `202610040001_safety.sql` (remove, block, account deletion, retention cleanup) is
 **not yet applied**: paste it into the project's SQL Editor, or run
-`supabase db push` after `supabase link --project-ref dpxgiogbdbmpqnxxgoph`. Also apply `202610040002_mute.sql` after the safety migration for mute controls.
+`supabase db push` after `supabase link --project-ref dpxgiogbdbmpqnxxgoph`. Then apply
+`202610040002_mute.sql` (mute), `202610040003_push.sql` (device registration and
+push outbox) and `202610040004_push_rotation.sql` (token takeover, expiry cleanup) in that order.
 The app
 tolerates the older schema, but remove/block/delete fail until it is applied. The tables live in
 `poki_private`, are protected by RLS, and have no client grants. Authenticated
@@ -60,17 +62,22 @@ The app handles either configuration and never treats an unconfirmed signup as a
 signed-in session. Sessions are stored in the device Keychain, refresh is
 serialized, and sign-out clears local account state.
 
-Pokes currently appear **inside the app**, not as APNs lock-screen notifications.
-No APNs key, push entitlement, worker, or delivery outbox is configured. The inbox
+Pokes always appear **inside the app**. Lock-screen delivery is implemented but
+not yet live: the app requests permission from Profile, registers its APNs token
+through `poki_register_device`, and removes it before sign-out. Each poke atomically
+queues deliveries that `backend/src/worker.ts` sends over APNs HTTP/2 after rechecking
+friendship, blocks and mutes. Going live needs the push migrations applied, an Apple
+`.p8` key, and a deployed worker with a service-role key; none is configured yet.
+An APNs token belongs to the most recent account that registered it, so a reinstalled
+or shared phone moves to the newly signed-in account. The inbox
 shows the last 24 hours. An hourly `pg_cron` job (`poki-cleanup`) deletes pokes
-older than 7 days and stale rate-limit rows. Blocking hides the blocked person's
+older than 7 days, stale rate-limit rows, expired device registrations and old push work. Blocking hides the blocked person's
 recent pokes from the blocker's inbox. Muting hides a person's pokes from the
 caller's inbox and unread badge without changing friendship, search, or sending.
 Unmuting restores recent pokes with their existing read state. Mutes survive
 removal/blocking, remain manageable in Profile, and cascade on account deletion.
-The sender cannot see whether they are muted. A future APNs worker must also
-check the recipient's mute preference before dispatch. Before a public release,
-add reporting and push delivery. Current messages use a 30 Unicode-code-point budget
+The sender cannot see whether they are muted, and muted pokes are never pushed.
+Before a public release, add reporting and verify push delivery on hardware. Current messages use a 30 Unicode-code-point budget
 on both client and database; compound emoji consume multiple units. Full
 30-grapheme support remains a follow-up requiring a matching server validator.
 

@@ -11,6 +11,7 @@ import UIKit
     var owner: UUID?
     var onToken: ((String) -> Void)?
     var onOpen: (() -> Void)?
+    var onForeground: (() -> Void)?
 
     func refreshPermission() async {
         permission = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
@@ -58,7 +59,11 @@ final class PokiAppDelegate: NSObject, UIApplicationDelegate, UNUserNotification
         guard let raw = notification.request.content.userInfo["recipient_id"] as? String,
               let recipient = UUID(uuidString: raw) else { return [] }
         return await MainActor.run {
-            NotificationController.shared.owner == recipient ? [.banner, .sound] : []
+            let controller = NotificationController.shared
+            guard controller.owner == recipient else { return [] }
+            // The banner is immediate; the refresh brings the inbox and badge up to date.
+            controller.onForeground?()
+            return [.banner, .sound]
         }
     }
 }

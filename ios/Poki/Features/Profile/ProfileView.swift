@@ -38,20 +38,6 @@ struct ProfileView: View {
                 }
 
                 Section {
-                    Text(model.push.status).font(.footnote).foregroundStyle(.secondary)
-                    if model.push.available {
-                        if model.push.denied {
-                            Link("Open notification settings", destination: URL(string: UIApplication.openSettingsURLString)!)
-                        } else {
-                            Button("Enable notifications", systemImage: "bell") { Task { await model.push.enable() } }
-                                .disabled(model.push.busy)
-                        }
-                    }
-                } header: { Text("Notifications") } footer: {
-                    Text("Allow notifications to see when a friend is thinking of you, even when Poki is closed.")
-                }
-
-                Section {
                     if model.notifications.permission == .denied {
                         Button("Open notification settings", systemImage: "bell.slash") {
                             if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
@@ -128,8 +114,6 @@ struct ProfileView: View {
                 }
 
                 Section {
-                    Text("Requests and pokes appear in the app’s notification inbox. Open Poki to check for new activity.")
-                        .font(.footnote).foregroundStyle(.secondary)
                     Button("Sign out", role: .destructive) { Task { await model.signOut() } }
                     Button("Delete account", role: .destructive) { isDeletePresented = true }
                 }

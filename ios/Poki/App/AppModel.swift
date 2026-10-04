@@ -10,9 +10,6 @@ final class AppModel {
         case profile
     }
 
-    let push = PushNotifications()
-    var selectedFriendID: UUID?
-    private var pendingNotification: (recipient: UUID, sender: UUID)?
     var destination: Destination = .home
     var friends: [Friend] = []
     var drafts: [UUID: String] = [:]
@@ -46,11 +43,12 @@ final class AppModel {
     init(
         pokeService: (any PokeService)? = nil,
         accountService: AccountService = AccountService(),
-        favoriteStore: FavoriteStore = FavoriteStore()
+        favoriteStore: FavoriteStore = FavoriteStore(),
+        pushStorage: (any PushRegistrationStorage)? = nil
     ) {
         self.pokeService = pokeService
         self.accountService = accountService
-        self.pushRegistration = PushRegistration(api: accountService)
+        self.pushRegistration = PushRegistration(api: accountService, storage: pushStorage ?? KeychainPushRegistrationStorage())
         self.favoriteStore = favoriteStore
         self.favorite = nil
     }
@@ -58,10 +56,11 @@ final class AppModel {
     func start() async {
         notifications.onToken = { [weak self] token in self?.registerPush(token: token) }
         notifications.onOpen = { [weak self] in self?.openNotification() }
+        notifications.onForeground = { [weak self] in Task { await self?.refresh() } }
         signedIn = await accountService.isSignedIn
         if signedIn { await refresh() }
         starting = false
-        applyNotificationRoute()
+        openNotification()
     }
 
     func signIn(email: String, password: String) async throws {
@@ -140,7 +139,6 @@ final class AppModel {
 
     func deleteAccount() async throws {
         let _: EmptyResponse = try await accountService.rpc("poki_delete_account")
-        push.clearAfterSignOut()
         await signOut(accountDeleted: true)
     }
 
@@ -157,11 +155,12 @@ final class AppModel {
         let snapshot: SocialSnapshot = try await accountService.rpc("poki_snapshot")
         guard generation == sessionGeneration else { return }
         profile = snapshot.profile
+        var ownerChanged = false
         if let profile, !signingOut {
             pushRegistration.activate(owner: profile.id)
+            ownerChanged = notifications.owner != profile.id
             notifications.owner = profile.id
             if let token = notifications.token { registerPush(token: token) }
-            openNotification()
         }
         friends = snapshot.friends.map(\.friend)
         requests = snapshot.requests
@@ -170,8 +169,9 @@ final class AppModel {
         muted = snapshot.muted ?? []
         if let saved = favoriteStore.load(), friends.contains(where: { $0.id == saved.friendID }) { favorite = saved }
         else { favorite = nil }
-        applyNotificationRoute()
-        if let profile { await push.synchronize(owner: profile.id, account: accountService) }
+        openNotification()
+        // A restored session must request a token once its owner is known.
+        if ownerChanged { await notifications.refreshPermission() }
     }
 
     func markPokesRead() async {
@@ -188,34 +188,12 @@ final class AppModel {
         do { try await pushRegistration.stop(accountDeleted: accountDeleted) }
         catch { return }
         notifications.clear()
-        do { try await push.unregister(account: accountService) }
-        catch { syncError = error.localizedDescription; return }
-        push.clearAfterSignOut()
-        pendingNotification = nil; selectedFriendID = nil
         sessionGeneration = UUID()
         signedIn = false; profile = nil; friends = []; requests = []; receivedPokes = []; blocked = []; muted = []
         drafts = [:]; attempts = [:]; sendingFriendIDs = []; favorite = nil; favoriteStore.save(nil)
         feedback = nil; syncError = nil; destination = .home
         isAddFriendPresented = false; isNotificationsPresented = false; isFavoriteEditorPresented = false
         await accountService.signOut()
-    }
-
-    func openNotification(recipient: UUID, sender: UUID) {
-        pendingNotification = (recipient, sender)
-        if starting { return }
-        Task { await refresh(); applyNotificationRoute() }
-    }
-
-    func applyNotificationRoute() {
-        guard let route = pendingNotification, !starting else { return }
-        pendingNotification = nil
-        guard signedIn, profile?.id == route.recipient,
-              friends.contains(where: { $0.id == route.sender }),
-              !blocked.contains(where: { $0.id == route.sender }),
-              !muted.contains(where: { $0.id == route.sender }) else { return }
-        destination = .home
-        isNotificationsPresented = false; isAddFriendPresented = false; isFavoriteEditorPresented = false
-        selectedFriendID = route.sender
     }
 
     func refreshNotificationPermission() async {

@@ -31,7 +31,5 @@
 	<string>1</string>
 	<key>PokiAPNSEnvironment</key>
 	<string>$(POKI_APNS_ENVIRONMENT)</string>
-	<key>PokiPushEnvironment</key>
-	<string>$(POKI_PUSH_ENVIRONMENT)</string>
 </dict>
 </plist>
