@@ -1,0 +1,6 @@
+tunnel: 74b50487-60c0-4f39-8be1-21d5128ee260
+credentials-file: /etc/cloudflared/credentials.json
+ingress:
+  - hostname: poki.irrssue.com
+    service: http://api:3000
+  - service: http_status:404

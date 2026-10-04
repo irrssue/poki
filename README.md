@@ -29,6 +29,10 @@ The bundle identifier in `project.yml` is provisional and must be replaced befor
 
 ## Backend foundation
 
+The backend is deployed on the homelab at
+`https://poki.irrssue.com/v1/health`. See [deployment and rollback](docs/homelab-hosting.md).
+The native iOS app continues to use hosted Supabase for its account/social flows.
+
 The Fastify service currently exposes only `GET /v1/health`. It reports process
 liveness, not database readiness or push delivery. The iOS app uses Supabase RPCs for social actions. No social endpoint accepts unauthenticated or simulated production writes.
 

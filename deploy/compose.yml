@@ -1,0 +1,48 @@
+name: poki
+services:
+  api:
+    image: poki-api:${POKI_RELEASE:?Set POKI_RELEASE to the deployed commit}
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    cpus: 0.5
+    ports:
+      - "127.0.0.1:3014:3000"
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/v1/health').then(async r => { if (!r.ok || (await r.json()).status !== 'ok') process.exit(1) }).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+  tunnel:
+    image: cloudflare/cloudflared:2026.9.3
+    user: "1000:1000"
+    command: [tunnel, --no-autoupdate, --config, /etc/cloudflared/config.yml, run]
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    cpus: 0.5
+    volumes:
+      - ./cloudflared.yml:/etc/cloudflared/config.yml:ro
+      - /home/irrssue/.cloudflared/74b50487-60c0-4f39-8be1-21d5128ee260.json:/etc/cloudflared/credentials.json:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
