@@ -11,6 +11,13 @@ current state. Start by checking `git status` and recent commits.
   friendships, requests, in-app pokes, and local favorite configuration exist.
 - Social actions call authenticated Supabase RPCs directly. `backend/` is a
   Fastify health-only service; no social API or push worker is hosted.
+- **The backend is deployed to the homelab** (commits `c5cc86e`, `1418e03`); see
+  `docs/homelab-hosting.md`. Public health URL: https://poki.irrssue.com/v1/health
+  (root returns 404 by design). Docker Compose project `poki` runs the `api`
+  container (loopback `127.0.0.1:3014`) and a dedicated Cloudflare tunnel `poki`.
+  Deploy or roll back with `bash deploy/homelab.sh [commit]` over the existing
+  `ssh irrssue@homelab` access; pushes alone do not deploy. Releases live in
+  `/home/irrssue/apps/poki/releases/<commit>`, `current` symlinks the live one.
 - Hosted Supabase project: `dpxgiogbdbmpqnxxgoph` (Poki, Canada Central).
   The app's URL and public publishable key are in
   `ios/Poki/Resources/AccountConfiguration.plist`. Never commit admin keys,
@@ -43,9 +50,16 @@ current state. Start by checking `git status` and recent commits.
   still points to Command Line Tools; use the explicit DEVELOPER_DIR below.
 - The fresh email-link round trip has NOT been verified. Older emails may retain
   localhost; an already-used link may have confirmed the address before redirecting.
-- Only the first two September 30 migrations were previously verified live.
-  Neither October 4 migration was applied during these changes. Inspect hosted
-  state before assuming remove/block/delete/mute are available there.
+- Verified October 4, 2026: the homelab health URL returned `{"status":"ok"}`
+  (HTTP 200), and on the server both `api` (healthy) and `tunnel` were up,
+  running release `1418e039e3e1734bb49e0a22ae5ffad6e2d3a7ae` (= `main` at the time).
+- **Verified October 4, 2026: the October 4 migrations are NOT applied live.**
+  Probing the hosted Data API with the publishable key returned `PGRST202`
+  (function not found) for `poki_block(person_id)` and `poki_mute(person_id)`,
+  while `poki_request`/`poki_snapshot` exist (`42501` permission denied for anon).
+  Remove/block/delete/mute will fail in the app until both are applied.
+- This Mac has no Supabase CLI login, access token, database password, `psql`,
+  or installed `supabase` binary (`npx supabase` is available via Node 26).
 
 ## Next steps, in order
 
@@ -56,10 +70,13 @@ current state. Start by checking `git status` and recent commits.
    links show a safe error. Coordinate inbox/password interaction with the owner;
    never log real callback URLs or tokens. Do not disable email confirmation as
    a shortcut.
-2. **Inspect and deploy missing hosted migrations.** Check whether the safety and
-   mute migrations are already present. If absent, apply
-   `202610040001_safety.sql`, then `202610040002_mute.sql` using the SQL Editor or
-   linked Supabase CLI. Test with two accounts: remove/cancel, block in both
+2. **Apply the missing hosted migrations (confirmed absent; blocked on owner
+   access).** Ask the owner to run `! npx supabase login` in the session (browser
+   approval), then `npx supabase link --project-ref dpxgiogbdbmpqnxxgoph` (may
+   prompt for the database password; never commit or log it) and push only
+   `202610040001_safety.sql`, then `202610040002_mute.sql`. Alternatively the
+   owner pastes each file into the dashboard SQL Editor in that order. Re-probe
+   `poki_block`/`poki_mute` afterwards to confirm they exist. Test with two accounts: remove/cancel, block in both
    directions, blocker-only unblock, directional mute/unmute, and inbox/badge
    filtering. Account deletion is destructive; use explicitly disposable test
    accounts with appropriate authorization. Check `cron.job` for `poki-cleanup`
@@ -80,13 +97,17 @@ current state. Start by checking `git status` and recent commits.
 
 ## External prerequisites
 
+- The owner was told (October 4) what each blocked item needs: Supabase CLI
+  login for migrations, an SMTP provider and sender domain, an Apple Developer
+  APNs `.p8` key, and two iPhones for acceptance testing. The owner has not yet
+  decided whether to start the push foundation code; confirm before beginning.
 - Custom SMTP is still needed for verified signup by arbitrary users; the built-in
   mailer's restrictions remain. The owner received a confirmation email, which
   does not establish unrestricted delivery. Keep confirmation enabled.
 - APNs requires the owner's Apple Developer key, capability/entitlement, and a
   deployed worker with securely stored credentials. No secrets belong in iOS.
-- Hosted migration access may require the owner to sign in or provide an approved
-  execution path. The Supabase dashboard was accessible in the in-app browser
+- Hosted migration access requires the owner to sign in (see step 2) or provide
+  an approved execution path. The Supabase dashboard was accessible in the in-app browser
   during the redirect fix; do not assume that session remains available.
 
 ## Later backlog
@@ -101,6 +122,13 @@ current state. Start by checking `git status` and recent commits.
 - Optional reproducible Supabase CLI configuration.
 
 ## Useful commands
+
+Homelab checks (no secrets needed):
+
+```sh
+curl -sS https://poki.irrssue.com/v1/health
+ssh irrssue@homelab 'cd /home/irrssue/apps/poki/current && POKI_RELEASE=$(basename "$(readlink -f .)") docker compose -f deploy/compose.yml ps'
+```
 
 ```sh
 cd backend
