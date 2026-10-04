@@ -13,7 +13,7 @@ const migrations = new URL('../../supabase/migrations/', import.meta.url);
 async function database(t) {
   const db = new PGlite();
   t.after(() => db.close());
-  await db.exec(`create role anon; create role authenticated; create schema auth;
+  await db.exec(`create role anon; create role authenticated; create role service_role; create schema auth;
     create table auth.users(id uuid primary key);
     create function auth.uid() returns uuid language sql as
       $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
@@ -245,4 +245,114 @@ test('mute is private, directional, reversible, and preserves friendship and sen
   for (const call of ['poki_mute($1)', 'poki_unmute($1)']) {
     await assert.rejects(db.query(`select public.${call}`, [alice]), /Sign in/);
   }
+});
+
+const device = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+const pokeID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+const token = 'ab'.repeat(32);
+async function pushFixture(t) {
+  const fixture = await database(t);
+  const { db, actor, snapshot } = fixture;
+  for (const [id, name] of [[alice,'alice'],[bob,'bob'],[eve,'eve']]) {
+    await actor(id);
+    await db.query('select poki_create_profile($1,$2)', [name,name]);
+  }
+  await actor(alice);
+  await db.query('select poki_request($1)',[bob]);
+  await actor(bob);
+  await db.query('select poki_respond($1,true)',[(await snapshot()).requests[0].id]);
+  await db.query('select poki_register_device($1,$2,$3)',[device,token,'sandbox']);
+  const send = async () => {
+    await actor(alice);
+    await db.query('select poki_send($1,$2,$3)',[bob,'Hello',pokeID]);
+  };
+  const worker = async () => { await db.exec('reset role; set role service_role'); };
+  const claim = async () => { await worker(); return (await db.query('select poki_claim_push() as v')).rows[0].v; };
+  const payload = async job => (await db.query('select poki_push_payload($1,$2) as v',[job.id,job.lease_id])).rows[0].v;
+  return {...fixture, send, worker, claim, payload};
+}
+
+test('push registrations enforce ownership, rotation, privacy and sign-out', async t => {
+  const {db,actor,send,claim,payload} = await pushFixture(t);
+  await actor(eve);
+  await assert.rejects(db.query('select poki_register_device($1,$2,$3)',[device,token,'sandbox']),/unavailable/);
+  await assert.rejects(db.query('select poki_register_device($1,$2,$3)',[pokeID,token,'sandbox']),/unavailable/);
+  await db.query('select poki_unregister_device($1)',[device]);
+  await assert.rejects(db.query('select * from poki_private.devices'),/permission denied/);
+  for (const query of ['select poki_claim_push()', 'select poki_push_payload($1,$1)', "select poki_finish_push($1,$1,'sent')"]) {
+    await assert.rejects(db.query(query,query.includes('$1')?[device]:[]),/permission denied/);
+  }
+  await send();
+  const job=await claim();
+  assert.equal((await payload(job)).token,token);
+  await actor(bob);
+  await db.query('select poki_register_device($1,$2,$3)',[device,'cd'.repeat(32),'production']);
+  await db.exec('reset role; set role service_role');
+  assert.equal(await payload(job),null);
+  await actor('');
+  await assert.rejects(db.query('select poki_unregister_device($1)',[device]),/Sign in/);
+  await actor(bob);
+  await db.query('select poki_unregister_device($1)',[device]);
+  await db.exec('reset role');
+  assert.equal((await db.query('select count(*)::int n from poki_private.devices')).rows[0].n,0);
+  assert.equal((await db.query('select count(*)::int n from poki_private.push_deliveries')).rows[0].n,0);
+});
+
+test('outbox is atomic, idempotent and lease-fenced with bounded retries', async t => {
+  const {db,send,claim,worker} = await pushFixture(t);
+  await send(); await send();
+  await db.exec('reset role');
+  for (const table of ['pokes','push_outbox','push_deliveries']) {
+    assert.equal((await db.query(`select count(*)::int n from poki_private.${table}`)).rows[0].n,1);
+  }
+  let job=await claim();
+  assert.equal(await claim(),null);
+  await db.query("select poki_finish_push($1,$2,'sent')",[job.id,pokeID]);
+  await db.exec("reset role; update poki_private.push_deliveries set lease_until=now()-interval '1 second'");
+  const replacement=await claim();
+  assert.notEqual(replacement.lease_id,job.lease_id);
+  await db.query("select poki_finish_push($1,$2,'sent')",[job.id,job.lease_id]);
+  job=replacement;
+  for(let n=2;n<=5;n++) {
+    await worker();
+    await db.query("select poki_finish_push($1,$2,'retry')",[job.id,job.lease_id]);
+    await db.exec("reset role; update poki_private.push_deliveries set available_at=now()-interval '1 second'");
+    if(n<5) job=await claim();
+  }
+  assert.equal(await claim(),null);
+  await db.exec('reset role');
+  const final=(await db.query('select state,attempts from poki_private.push_deliveries')).rows[0];
+  assert.deepEqual(final,{state:'dropped',attempts:5});
+  // A failing enqueue must roll back the poke and rate-limit write too.
+  await db.exec(`update poki_private.pokes set created_at=now()-interval '4 seconds';
+    create function poki_private.fail_enqueue() returns trigger language plpgsql as $$ begin raise exception 'injected failure'; end $$;
+    create trigger test_failure before insert on poki_private.push_outbox for each row execute function poki_private.fail_enqueue();
+    set role authenticated;`);
+  await assert.rejects(db.query('select poki_send($1,$2,$3)',[bob,'Again','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee']),/injected failure/);
+  await db.exec('reset role');
+  assert.equal((await db.query('select count(*)::int n from poki_private.pokes')).rows[0].n,1);
+});
+
+for(const change of ['mute','block','remove','expire','unregister','delete']) {
+  test(`dispatch rechecks ${change} after claim`,async t => {
+    const {db,actor,send,claim,worker,payload}=await pushFixture(t);
+    await send(); const job=await claim();
+    await actor(bob);
+    if(change==='expire') await db.exec("reset role; update poki_private.push_outbox set expires_at=now()-interval '1 second'");
+    else if(change==='unregister') await db.query('select poki_unregister_device($1)',[device]);
+    else if(change==='delete') await db.query('select poki_delete_account()');
+    else await db.query(`select poki_${change}($1)`,[alice]);
+    await worker(); assert.equal(await payload(job),null);
+  });
+}
+
+test('old APNs invalidation does not delete a refreshed registration',async t=>{
+  const {db,actor,send,claim,worker}=await pushFixture(t);
+  await send(); const job=await claim();
+  await actor(bob);
+  await db.query('select poki_register_device($1,$2,$3)',[device,token,'sandbox']);
+  await worker();
+  await db.query("select poki_finish_push($1,$2,'invalid',$3)",[job.id,job.lease_id,Date.now()-60000]);
+  await db.exec('reset role');
+  assert.equal((await db.query('select count(*)::int n from poki_private.devices')).rows[0].n,1);
 });
