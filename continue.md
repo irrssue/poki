@@ -1,135 +1,135 @@
-# Continue here — handoff (October 4, 2026)
+# Poki — agent handoff (October 4, 2026)
 
-Read `about.md` (product spec), `docs/accounts-setup.md` (Supabase setup and RPCs),
-and `docs/project-status.md` (history) before starting.
+Read `about.md`, `docs/accounts-setup.md`, and the current updates at the top of
+`docs/project-status.md`. The older implementation review is historical, not the
+current state. Start by checking `git status` and recent commits.
 
 ## Current state
 
-**Hosted Supabase project:** `dpxgiogbdbmpqnxxgoph` (Poki, Canada Central). The app's
-URL and **public** publishable key are in `ios/Poki/Resources/AccountConfiguration.plist`.
-Never put a secret/service-role key or database password in the app or repo.
+- Native SwiftUI app, iOS 17 minimum, generated with XcodeGen from `project.yml`.
+  Email/password accounts, profile creation, exact @username search, accepted
+  friendships, requests, in-app pokes, and local favorite configuration exist.
+- Social actions call authenticated Supabase RPCs directly. `backend/` is a
+  Fastify health-only service; no social API or push worker is hosted.
+- Hosted Supabase project: `dpxgiogbdbmpqnxxgoph` (Poki, Canada Central).
+  The app's URL and public publishable key are in
+  `ios/Poki/Resources/AccountConfiguration.plist`. Never commit admin keys,
+  database passwords, sessions, or confirmation URLs containing tokens.
+- Remove/cancel, block/unblock, account deletion and retention cleanup are
+  implemented in `202610040001_safety.sql`.
+- Commit `ceaa32f` added `202610040002_mute.sql` and Profile mute/unmute controls.
+  Muting privately hides incoming pokes and their badge contribution, preserves
+  friendships/sending, and survives removal/blocking. Unmuting restores recent
+  pokes with their existing read state. Account deletion cascades mute rows.
+- Commit `7db8c18` fixed signup confirmation redirects. Hosted Auth Site URL and
+  its exact allowed redirect were saved as `com.pokiapp.poki://auth/confirm`.
+  The app registers that scheme, explicitly requests it at signup, validates
+  signup callbacks and exchanges refresh tokens with the configured Auth server
+  before saving the session in Keychain. Sign-in includes confirmation resend.
+- Email confirmation remains enabled. No custom SMTP or APNs delivery has been
+  configured in this work. Pokes currently appear only inside Poki.
 
-Verified live on October 4, 2026:
-- Migrations `202609300001_social.sql` and `202609300002_search_parameter.sql` are applied.
-  Calling an RPC without signing in returns `permission denied`, which is correct.
-- Email/password auth is enabled. Email confirmation is **required**
-  (`mailer_autoconfirm: false`). No custom SMTP is configured.
-- Accounts, exact @username search, friend requests and in-app pokes work end to end.
+## Verification and limits
 
-**Backend (`backend/`):** a Fastify service with only `GET /v1/health`. Social features
-use Supabase RPCs directly; there is no separately hosted API. `npm test` runs the
-health/config tests plus real-PostgreSQL (PGlite) tests that apply **every** file
-in `supabase/migrations/` in filename order. All 20 backend tests pass.
+- All 20 backend tests passed after the mute increment. PGlite applies every SQL
+  migration in filename order and exercises authorization and state transitions.
+- All seven shared Swift package tests passed after the redirect fix, including
+  rejection of foreign/malformed/expired callbacks and duplicate refresh tokens.
+- Simulator app compilation and signed physical-device build succeeded. The
+  updated app was installed and launched on the connected iPhone.
+- Simulator app tests stalled before starting and were interrupted; do not claim
+  the full app test suite passed. GitHub Actions results were not checked.
+- Full Xcode now exists at `/Applications/Xcode.app`. The default `xcode-select`
+  still points to Command Line Tools; use the explicit DEVELOPER_DIR below.
+- The fresh email-link round trip has NOT been verified. Older emails may retain
+  localhost; an already-used link may have confirmed the address before redirecting.
+- Only the first two September 30 migrations were previously verified live.
+  Neither October 4 migration was applied during these changes. Inspect hosted
+  state before assuming remove/block/delete/mute are available there.
 
-**iOS (`ios/`):** SwiftUI app, iOS 17, generated with XcodeGen from `project.yml`.
+## Next steps, in order
 
-## Added in commit `75f5777`
+1. **Finish confirmation acceptance testing.** On the updated iPhone app, try
+   signing in if the earlier link was clicked. Otherwise use Resend confirmation
+   email and open the newest link on the same phone. Check return to Poki,
+   authenticated profile setup, relaunch persistence, and sign-out. Check expired
+   links show a safe error. Coordinate inbox/password interaction with the owner;
+   never log real callback URLs or tokens. Do not disable email confirmation as
+   a shortcut.
+2. **Inspect and deploy missing hosted migrations.** Check whether the safety and
+   mute migrations are already present. If absent, apply
+   `202610040001_safety.sql`, then `202610040002_mute.sql` using the SQL Editor or
+   linked Supabase CLI. Test with two accounts: remove/cancel, block in both
+   directions, blocker-only unblock, directional mute/unmute, and inbox/badge
+   filtering. Account deletion is destructive; use explicitly disposable test
+   accounts with appropriate authorization. Check `cron.job` for `poki-cleanup`
+   when pg_cron is available; cleanup scheduling is conditional.
+3. **Recover simulator app tests and check CI.** Resolve the simulator boot/test
+   launch stall, then run the Poki test scheme. Do not reinstall tools or change
+   global Xcode selection unnecessarily. Preserve existing signing/team settings.
+4. **Next substantial engineering increment: durable push foundation.** Add a
+   private device-registration table and authenticated RPC with token ownership,
+   APNs environment, rotation, and sign-out lifecycle. Add an outbox atomically
+   with poke insertion, preserving idempotency. Test no duplicate dispatch jobs,
+   rollback on failures, and private-table/actor boundaries. Then implement the
+   APNs HTTP/2 worker with bounded retries, expiration, token invalidation, and
+   current friendship/block/mute checks before dispatch. Configure credentials
+   and hosting separately; do not claim visible push delivery until tested on
+   hardware. Add contextual permission UI and notification routing. Poke-back
+   follows once delivery is reliable.
 
-- `supabase/migrations/202610040001_safety.sql`:
-  - `poki_remove(person_id)`: ends a friendship, or cancels/dismisses a pending
-    request. Declined rows keep their 24-hour cooldown.
-  - `poki_block(person_id)` / `poki_unblock(person_id)`: blocking deletes the connection
-    and hides both people from each other's search and requests. It also hides the
-    blocked person's pokes from the blocker's inbox. Only the blocker can unblock.
-  - `poki_delete_account()`: deletes the `auth.users` row; the profile, connections,
-    pokes, blocks and rate limits cascade.
-  - `poki_snapshot` now also returns `blocked` (the people the caller blocked).
-  - `poki_private.cleanup()`: an hourly `pg_cron` job (`poki-cleanup`, at minute 17)
-    deletes pokes older than 7 days and stale rate-limit rows. It is only scheduled
-    when `pg_cron` is available.
-- `backend/tests/social.test.mjs`: a new test covering removal, cancelling, blocking in
-  both directions, blocker-only unblock, account-deletion cascade, cleanup and anon denial.
-- iOS:
-  - `ProfileView` lists friends with Remove and Block (both confirmed), shows a
-    blocked list with Unblock, and offers a confirmed Delete account.
-  - `NotificationsView` has a Cancel button on outgoing requests.
-  - `AppModel` has `removeFriend`, `block`, `unblock` and `deleteAccount`.
-  - `SocialSnapshot.blocked` is optional, so the app still works on the old schema.
-- Docs updated.
+## External prerequisites
 
-## Next increment delivered: mute controls
+- Custom SMTP is still needed for verified signup by arbitrary users; the built-in
+  mailer's restrictions remain. The owner received a confirmation email, which
+  does not establish unrestricted delivery. Keep confirmation enabled.
+- APNs requires the owner's Apple Developer key, capability/entitlement, and a
+  deployed worker with securely stored credentials. No secrets belong in iOS.
+- Hosted migration access may require the owner to sign in or provide an approved
+  execution path. The Supabase dashboard was accessible in the in-app browser
+  during the redirect fix; do not assume that session remains available.
 
-- `202610040002_mute.sql` adds private directional mute preferences and authenticated
-  `poki_mute(person_id)` / `poki_unmute(person_id)` RPCs. Only accepted friends can
-  be newly muted. Unmute works after removal/blocking. Account deletion cascades.
-- Snapshot includes optional `muted` and excludes those senders before its inbox
-  limit; inbox and unread badge hide their pokes. Unmuting restores recent pokes.
-- Profile has friend-menu Mute/Unmute and a separate Muted list. Friendship, search,
-  and sends remain available; senders cannot read the recipient's preference.
-- PostgreSQL integration coverage verifies auth, isolation, deduplication,
-  reversibility, continued sends, removal/blocking, and deletion. Swift tests cover
-  decoding older snapshots and clearing mute state on sign-out.
-- Backend suite and shared Swift build pass; changed Swift sources pass syntax
-  parsing. Full iOS build/tests still need Xcode. No APNs delivery is implemented.
+## Later backlog
 
-## Email confirmation redirect fixed
+- Report-user controls and a private reporting/moderation workflow.
+- Match the spec's 30 visible characters (graphemes) on client and server;
+  current validation uses 30 Unicode code points. Add shared Unicode fixtures.
+- Make all non-editing friend-row areas poke targets, add accepted-send haptics,
+  and test keyboard, Dynamic Type, VoiceOver, and accidental-send behavior.
+- Private profile-photo storage and a real app icon.
+- Favorite-person WidgetKit/App Intents extension after send reliability is proven.
+- Optional reproducible Supabase CLI configuration.
 
-- Hosted Site URL and exact allowed redirect now use
-  `com.pokiapp.poki://auth/confirm`; localhost has been replaced.
-- The app registers this scheme, requests it on signup, handles signup callbacks,
-  and exchanges callback refresh tokens with the configured Auth server before
-  saving the session. Errors are shown without exposing credentials.
-- Sign-in includes Resend confirmation email. Use a newly sent link on the iPhone
-  with the updated app installed. A previously used link may already have confirmed
-  the email; try signing in in that case.
-- Full Xcode is now installed at `/Applications/Xcode.app`; use
-  `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` for builds/tests.
-  The default xcode-select still points at Command Line Tools.
+## Useful commands
 
-Verification for the confirmation fix: all seven shared package tests pass.
-The iOS app compiled for simulator and a signed physical-device build succeeded;
-the updated app was installed and launched on the connected iPhone. The simulator
-app test run stalled before starting tests and was interrupted. A real newly
-sent email-link round trip still needs the user's inbox interaction.
+```sh
+cd backend
+npm test
+npm run typecheck
+```
 
-## Not verified
+From the repository root:
 
-- This Mac has only Apple's Command Line Tools (no full Xcode), so the iOS app was
-  **not built or run**. The new Swift code was only typechecked against the macOS SDK,
-  with stubs for iOS-only APIs. Build and test in Xcode or CI, and on a real device.
-- GitHub Actions results were not checked (`gh` is not authenticated on this machine).
+```sh
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --package-path ios/Packages/PokiCore
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun simctl list devices available
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild test -project Poki.xcodeproj -scheme Poki -destination 'platform=iOS Simulator,name=iPhone 18 Pro' CODE_SIGNING_ALLOWED=NO
+```
 
-## What still needs doing
+Use an available simulator rather than assuming the example device exists.
+Regenerate with `xcodegen generate` after changing `project.yml`; keep the generated
+project and `ios/Poki/Resources/Info.plist` consistent with URL-scheme registration.
 
-### Needs the project owner (external setup)
-1. **Apply the new migration to the hosted project.** Paste
-   `supabase/migrations/202610040001_safety.sql` and then
-   `supabase/migrations/202610040002_mute.sql` into the Supabase SQL Editor, or run
-   `supabase link --project-ref dpxgiogbdbmpqnxxgoph && supabase db push`.
-   Remove, block, delete and mute controls fail in the app until this is done.
-   Afterwards, check that `poki-cleanup` appears in `cron.job`.
-2. **Email confirmation.** Supabase's built-in mailer only delivers to a limited set
-   of addresses, so arbitrary users can't verify signups. Either configure custom
-   SMTP, or (with the owner's approval, development only) disable confirmation.
-3. **Push notifications (APNs).** Needs an APNs auth key from the Apple Developer
-   account and the Push Notifications capability/entitlement. Pokes currently show
-   only inside the app.
+## Working conventions
 
-### Engineering backlog
-- **Push delivery:** device token registration RPC/table, a delivery outbox written in
-  the same transaction as `poki_send`, a worker in `backend/` that sends via APNs
-  HTTP/2, and a "Poke back" notification action. The worker must check current
-  recipient mute and block preferences before dispatch. Never acknowledge a poke without
-  durably recording the dispatch work.
-- **Report user** (spec: profile area). Mute is now implemented.
-- **Favorite-person widget:** WidgetKit + App Intents, sharing the send client.
-- **Profile photos** (private Supabase Storage bucket) and a real app icon (the asset
-  catalog has no image).
-- **Message length:** currently a 30 Unicode-code-point limit on both app and
-  database. The spec wants 30 visible characters (graphemes), which requires a
-  matching validator on the server.
-- **Friend-list behavior gaps** from `docs/project-status.md`: the whole row container
-  should be the poke target, haptic feedback, and keyboard/Dynamic Type/VoiceOver
-  testing.
-- **Optional:** add `supabase/config.toml` (`supabase init`) so the CLI workflow
-  is reproducible.
-
-## Conventions
-- Every social write goes through a `security definer` RPC in `public` that derives
-  the user from `auth.uid()`. Tables live in `poki_private` with RLS enabled and no
-  client grants.
-- New public RPCs: `revoke ... from public, anon` and `grant ... to authenticated`.
-  New `poki_private` functions: revoke from `public, anon, authenticated`.
-- Add each schema change as a new, timestamp-named migration file. Never edit applied
-  migrations. Cover the change in `backend/tests/social.test.mjs`.
-- After each change: commit with a descriptive message and push to `main`.
+- Social writes use `security definer` RPCs in `public`, deriving the actor from
+  `auth.uid()`. Private tables have RLS and no client grants; use an empty search
+  path and qualified references. Check the actor even for no-op operations.
+- Revoke new public RPC execution from `public, anon`; grant to `authenticated`.
+  Revoke private function execution from `public, anon, authenticated`.
+- Add timestamped migrations; never rewrite applied migrations. Cover database
+  behavior in `backend/tests/social.test.mjs`.
+- Follow the user's Git workflow: stage changed files, commit with a readable
+  message explaining what and why, then push directly to `main` automatically.
+- The user requests execution responses containing only `DONE`, unless they
+  explicitly ask for explanations or next steps.
