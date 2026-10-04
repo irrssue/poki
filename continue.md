@@ -19,7 +19,7 @@ Verified live on October 4, 2026:
 **Backend (`backend/`):** a Fastify service with only `GET /v1/health`. Social features
 use Supabase RPCs directly; there is no separately hosted API. `npm test` runs the
 health/config tests plus real-PostgreSQL (PGlite) tests that apply **every** file
-in `supabase/migrations/` in filename order. All 19 tests pass.
+in `supabase/migrations/` in filename order. All 20 backend tests pass.
 
 **iOS (`ios/`):** SwiftUI app, iOS 17, generated with XcodeGen from `project.yml`.
 
@@ -47,6 +47,21 @@ in `supabase/migrations/` in filename order. All 19 tests pass.
   - `SocialSnapshot.blocked` is optional, so the app still works on the old schema.
 - Docs updated.
 
+## Next increment delivered: mute controls
+
+- `202610040002_mute.sql` adds private directional mute preferences and authenticated
+  `poki_mute(person_id)` / `poki_unmute(person_id)` RPCs. Only accepted friends can
+  be newly muted. Unmute works after removal/blocking. Account deletion cascades.
+- Snapshot includes optional `muted` and excludes those senders before its inbox
+  limit; inbox and unread badge hide their pokes. Unmuting restores recent pokes.
+- Profile has friend-menu Mute/Unmute and a separate Muted list. Friendship, search,
+  and sends remain available; senders cannot read the recipient's preference.
+- PostgreSQL integration coverage verifies auth, isolation, deduplication,
+  reversibility, continued sends, removal/blocking, and deletion. Swift tests cover
+  decoding older snapshots and clearing mute state on sign-out.
+- Backend suite and shared Swift build pass; changed Swift sources pass syntax
+  parsing. Full iOS build/tests still need Xcode. No APNs delivery is implemented.
+
 ## Not verified
 
 - This Mac has only Apple's Command Line Tools (no full Xcode), so the iOS app was
@@ -58,9 +73,10 @@ in `supabase/migrations/` in filename order. All 19 tests pass.
 
 ### Needs the project owner (external setup)
 1. **Apply the new migration to the hosted project.** Paste
-   `supabase/migrations/202610040001_safety.sql` into the Supabase SQL Editor, or run
+   `supabase/migrations/202610040001_safety.sql` and then
+   `supabase/migrations/202610040002_mute.sql` into the Supabase SQL Editor, or run
    `supabase link --project-ref dpxgiogbdbmpqnxxgoph && supabase db push`.
-   Remove, block and delete fail in the app until this is done.
+   Remove, block, delete and mute controls fail in the app until this is done.
    Afterwards, check that `poki-cleanup` appears in `cron.job`.
 2. **Email confirmation.** Supabase's built-in mailer only delivers to a limited set
    of addresses, so arbitrary users can't verify signups. Either configure custom
@@ -72,9 +88,10 @@ in `supabase/migrations/` in filename order. All 19 tests pass.
 ### Engineering backlog
 - **Push delivery:** device token registration RPC/table, a delivery outbox written in
   the same transaction as `poki_send`, a worker in `backend/` that sends via APNs
-  HTTP/2, and a "Poke back" notification action. Never acknowledge a poke without
+  HTTP/2, and a "Poke back" notification action. The worker must check current
+  recipient mute and block preferences before dispatch. Never acknowledge a poke without
   durably recording the dispatch work.
-- **Report user and mute** (spec: profile area).
+- **Report user** (spec: profile area). Mute is now implemented.
 - **Favorite-person widget:** WidgetKit + App Intents, sharing the send client.
 - **Profile photos** (private Supabase Storage bucket) and a real app icon (the asset
   catalog has no image).

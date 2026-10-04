@@ -12,6 +12,14 @@ screens. It must still be applied to the hosted project. Remaining external setu
 custom SMTP (or approved disabling of email confirmation) and APNs credentials
 for push delivery.
 
+October 4, 2026: added `202610040002_mute.sql` and Profile mute/unmute controls.
+Mute preferences are private and directional; the snapshot excludes muted senders
+before the inbox limit, so their pokes do not contribute to the badge. Friendships
+and outgoing pokes remain available. Muted people stay listed after removal/blocking
+so preferences can be undone. Integration tests cover ownership, reversibility,
+friendship preservation, sending, auth denial, and deletion cascade. Both October 4
+migrations still need hosted deployment. Reporting and APNs remain pending.
+
 The older review below describes the prior
 prototype and is retained as historical context.
 

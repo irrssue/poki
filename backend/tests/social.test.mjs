@@ -167,3 +167,82 @@ test('real PostgreSQL enforces removal, blocking, deletion, and cleanup', async 
   }
   await assert.rejects(db.query('select public.poki_delete_account()'), /permission denied/);
 });
+
+test('mute is private, directional, reversible, and preserves friendship and sending', async t => {
+  const { db, actor, snapshot } = await database(t);
+  for (const [id, handle] of [[alice, 'alice'], [bob, 'bob'], [eve, 'eve']]) {
+    await actor(id);
+    await db.query('select public.poki_create_profile($1,$2)', [handle, handle]);
+  }
+  await actor(alice);
+  await assert.rejects(db.query('select public.poki_mute($1)', [alice]), /cannot mute yourself/);
+  await assert.rejects(db.query('select public.poki_mute($1)', [eve]), /only mute accepted friends/);
+  await assert.rejects(db.query('select public.poki_mute($1)', [null]), /only mute accepted friends/);
+  await db.query('select public.poki_request($1)', [bob]);
+  await assert.rejects(db.query('select public.poki_mute($1)', [bob]), /only mute accepted friends/);
+  await actor(bob);
+  await db.query('select public.poki_respond($1,true)', [(await snapshot()).requests[0].id]);
+  const before = '99999999-9999-4999-8999-999999999999';
+  await db.query('select public.poki_send($1,$2,$3)', [alice, 'Before mute', before]);
+  await actor(alice);
+  assert.equal((await snapshot()).pokes.length, 1);
+  await db.query('select public.poki_mute($1)', [bob]);
+  await db.query('select public.poki_mute($1)', [bob]);
+  let a = await snapshot();
+  assert.deepEqual(a.muted.map(p => p.id), [bob]);
+  assert.equal(a.pokes.length, 0);
+  assert.equal(a.friends.length, 1);
+  assert.equal((await db.query('select public.poki_search($1) as value', ['bob'])).rows[0].value.relationship, 'accepted');
+  await assert.rejects(db.query('select * from poki_private.mutes'), /permission denied/);
+  await db.query('select public.poki_send($1,$2,$3)', [bob, 'Still friends', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa']);
+  await actor(bob);
+  assert.deepEqual((await snapshot()).muted, []);
+  assert.equal((await snapshot()).pokes.length, 1);
+  await db.query('select public.poki_unmute($1)', [alice]);
+  // New pokes are still accepted; the recipient's preference stays private.
+  await db.exec("reset role; update poki_private.pokes set created_at=now()-interval '4 seconds'; set role authenticated");
+  await db.query('select public.poki_send($1,$2,$3)', [alice, 'During mute', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb']);
+  await actor(alice);
+  assert.equal((await snapshot()).muted.length, 1);
+  assert.equal((await snapshot()).pokes.length, 0);
+  await actor(eve);
+  assert.deepEqual((await snapshot()).muted, []);
+  await db.query('select public.poki_unmute($1)', [bob]);
+  await actor(alice);
+  assert.equal((await snapshot()).muted.length, 1);
+  await db.query('select public.poki_unmute($1)', [bob]);
+  await db.query('select public.poki_unmute($1)', [bob]);
+  a = await snapshot();
+  assert.deepEqual(a.muted, []);
+  assert.equal(a.pokes.length, 2);
+  assert.ok(a.pokes.every(p => p.unread));
+  // Mutes survive removal/blocking so reconnecting does not reset preferences.
+  await db.query('select public.poki_mute($1)', [bob]);
+  await db.query('select public.poki_remove($1)', [bob]);
+  assert.equal((await snapshot()).muted.length, 1);
+  await db.query('select public.poki_block($1)', [bob]);
+  await db.query('select public.poki_unmute($1)', [bob]);
+  assert.equal((await snapshot()).muted.length, 0);
+  assert.equal((await snapshot()).pokes.length, 0);
+  await db.query('select public.poki_unblock($1)', [bob]);
+  await db.query('select public.poki_request($1)', [bob]);
+  await actor(bob);
+  await db.query('select public.poki_respond($1,true)', [(await snapshot()).requests[0].id]);
+  await db.query('select public.poki_mute($1)', [alice]);
+  await actor(alice);
+  await db.query('select public.poki_mute($1)', [bob]);
+  await actor(bob);
+  await db.query('select public.poki_delete_account()');
+  await actor(alice);
+  assert.deepEqual((await snapshot()).muted, []);
+  await db.exec('reset role');
+  assert.equal((await db.query('select count(*)::int as n from poki_private.mutes')).rows[0].n, 0);
+  await db.exec('set role anon');
+  for (const call of ['poki_mute($1)', 'poki_unmute($1)']) {
+    await assert.rejects(db.query(`select public.${call}`, [alice]), /permission denied/);
+  }
+  await actor('');
+  for (const call of ['poki_mute($1)', 'poki_unmute($1)']) {
+    await assert.rejects(db.query(`select public.${call}`, [alice]), /Sign in/);
+  }
+});

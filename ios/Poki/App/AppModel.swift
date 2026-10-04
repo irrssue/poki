@@ -23,6 +23,7 @@ final class AppModel {
     var requests: [FriendRequest] = []
     var receivedPokes: [ReceivedPoke] = []
     var blocked: [Person] = []
+    var muted: [Person] = []
     var signedIn = false
     var starting = true
     var syncError: String?
@@ -104,6 +105,16 @@ final class AppModel {
         await refresh()
     }
 
+    func mute(_ id: UUID) async throws {
+        let _: EmptyResponse = try await accountService.rpc("poki_mute", body: ["person_id": id.uuidString])
+        await refresh()
+    }
+
+    func unmute(_ id: UUID) async throws {
+        let _: EmptyResponse = try await accountService.rpc("poki_unmute", body: ["person_id": id.uuidString])
+        await refresh()
+    }
+
     func deleteAccount() async throws {
         let _: EmptyResponse = try await accountService.rpc("poki_delete_account")
         await signOut()
@@ -126,6 +137,7 @@ final class AppModel {
         requests = snapshot.requests
         receivedPokes = snapshot.pokes
         blocked = snapshot.blocked ?? []
+        muted = snapshot.muted ?? []
         if let saved = favoriteStore.load(), friends.contains(where: { $0.id == saved.friendID }) { favorite = saved }
         else { favorite = nil }
     }
@@ -139,7 +151,7 @@ final class AppModel {
 
     func signOut() async {
         sessionGeneration = UUID()
-        signedIn = false; profile = nil; friends = []; requests = []; receivedPokes = []; blocked = []
+        signedIn = false; profile = nil; friends = []; requests = []; receivedPokes = []; blocked = []; muted = []
         drafts = [:]; attempts = [:]; sendingFriendIDs = []; favorite = nil; favoriteStore.save(nil)
         feedback = nil; syncError = nil; destination = .home
         isAddFriendPresented = false; isNotificationsPresented = false; isFavoriteEditorPresented = false

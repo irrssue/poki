@@ -61,6 +61,19 @@ final class AppModelTests: XCTestCase {
         XCTAssertEqual(model.feedback?.succeeded, false)
     }
 
+    func testOlderSnapshotDecodesWithoutMuteState() throws {
+        let data = Data(#"{"profile":null,"friends":[],"requests":[],"pokes":[]}"#.utf8)
+        let snapshot = try JSONDecoder().decode(SocialSnapshot.self, from: data)
+        XCTAssertNil(snapshot.muted)
+    }
+
+    func testSignOutClearsMuteState() async {
+        let model = model()
+        model.muted = [Person(id: UUID(), username: "sam", name: "Sam")]
+        await model.signOut()
+        XCTAssertTrue(model.muted.isEmpty)
+    }
+
     func testSignOutDiscardsInFlightAccountFeedback() async {
         let service = HeldPokeService()
         let model = model(service: service)

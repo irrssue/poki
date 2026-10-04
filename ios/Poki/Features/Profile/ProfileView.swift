@@ -46,6 +46,11 @@ struct ProfileView: View {
                                 }
                                 Spacer()
                                 Menu {
+                                    if model.muted.contains(where: { $0.id == friend.id }) {
+                                        Button("Unmute", systemImage: "bell") { perform { try await model.unmute(friend.id) } }
+                                    } else {
+                                        Button("Mute", systemImage: "bell.slash") { perform { try await model.mute(friend.id) } }
+                                    }
                                     Button("Remove friend", systemImage: "person.badge.minus") { pendingAction = .remove(friend) }
                                     Button("Block", systemImage: "hand.raised", role: .destructive) { pendingAction = .block(friend) }
                                 } label: {
@@ -54,6 +59,24 @@ struct ProfileView: View {
                                 .accessibilityLabel("Options for \(friend.name)")
                             }
                         }
+                    }
+                }
+
+                if !model.muted.isEmpty {
+                    Section {
+                        ForEach(model.muted) { person in
+                            HStack {
+                                Text("@\(person.username)")
+                                Spacer()
+                                Button("Unmute") { perform { try await model.unmute(person.id) } }
+                                    .buttonStyle(.bordered)
+                                    .accessibilityLabel("Unmute \(person.name)")
+                            }
+                        }
+                    } header: {
+                        Text("Muted")
+                    } footer: {
+                        Text("Muted people’s pokes are hidden from your inbox and badge. Unmuting shows their recent pokes again. You can still poke each other.")
                     }
                 }
 
