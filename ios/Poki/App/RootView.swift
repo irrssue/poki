@@ -34,6 +34,7 @@ struct RootView: View {
         .task { await model.start() }
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
+            await model.refreshNotificationPermission()
             while !Task.isCancelled {
                 await model.refresh()
                 do { try await Task.sleep(for: .seconds(10)) } catch { return }

@@ -51,6 +51,25 @@ struct ProfileView: View {
                     Text("Allow notifications to see when a friend is thinking of you, even when Poki is closed.")
                 }
 
+                Section {
+                    if model.notifications.permission == .denied {
+                        Button("Open notification settings", systemImage: "bell.slash") {
+                            if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+                        }
+                    } else {
+                        Button(model.pushRegistration.registered ? "Refresh notifications" : "Enable notifications", systemImage: "bell.badge") {
+                            Task { await model.notifications.enable() }
+                        }
+                    }
+                    if let message = model.pushRegistration.error ?? model.notifications.error {
+                        Text(message).font(.footnote).foregroundStyle(.red)
+                    }
+                } header: {
+                    Text("Notifications")
+                } footer: {
+                    Text("Allow Poki to alert you when a friend pokes you. You can change this anytime in Settings.")
+                }
+
                 if !model.friends.isEmpty {
                     Section("Friends") {
                         ForEach(model.friends) { friend in

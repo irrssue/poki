@@ -31,6 +31,9 @@ final class AppModel {
     var starting = true
     var syncError: String?
     var confirmationError: String?
+    let notifications = NotificationController.shared
+    let pushRegistration: PushRegistration
+    private var signingOut = false
     let accountService: AccountService
     private var sessionGeneration = UUID()
     private var refreshing = false
@@ -47,11 +50,14 @@ final class AppModel {
     ) {
         self.pokeService = pokeService
         self.accountService = accountService
+        self.pushRegistration = PushRegistration(api: accountService)
         self.favoriteStore = favoriteStore
         self.favorite = nil
     }
 
     func start() async {
+        notifications.onToken = { [weak self] token in self?.registerPush(token: token) }
+        notifications.onOpen = { [weak self] in self?.openNotification() }
         signedIn = await accountService.isSignedIn
         if signedIn { await refresh() }
         starting = false
@@ -77,6 +83,7 @@ final class AppModel {
     }
 
     func confirmEmail(url: URL) async {
+        guard !signedIn else { return }
         guard url.scheme?.lowercased() == "com.pokiapp.poki" else { return }
         do {
             try await accountService.confirmEmail(url: url)
@@ -134,11 +141,11 @@ final class AppModel {
     func deleteAccount() async throws {
         let _: EmptyResponse = try await accountService.rpc("poki_delete_account")
         push.clearAfterSignOut()
-        await signOut()
+        await signOut(accountDeleted: true)
     }
 
     func refresh() async {
-        guard signedIn, !refreshing else { return }
+        guard signedIn, !refreshing, !signingOut else { return }
         refreshing = true
         defer { refreshing = false }
         do { try await loadSnapshot(); syncError = nil }
@@ -150,6 +157,12 @@ final class AppModel {
         let snapshot: SocialSnapshot = try await accountService.rpc("poki_snapshot")
         guard generation == sessionGeneration else { return }
         profile = snapshot.profile
+        if let profile, !signingOut {
+            pushRegistration.activate(owner: profile.id)
+            notifications.owner = profile.id
+            if let token = notifications.token { registerPush(token: token) }
+            openNotification()
+        }
         friends = snapshot.friends.map(\.friend)
         requests = snapshot.requests
         receivedPokes = snapshot.pokes
@@ -168,7 +181,13 @@ final class AppModel {
         catch { syncError = error.localizedDescription }
     }
 
-    func signOut() async {
+    func signOut(accountDeleted: Bool = false) async {
+        guard !signingOut else { return }
+        signingOut = true
+        defer { signingOut = false }
+        do { try await pushRegistration.stop(accountDeleted: accountDeleted) }
+        catch { return }
+        notifications.clear()
         do { try await push.unregister(account: accountService) }
         catch { syncError = error.localizedDescription; return }
         push.clearAfterSignOut()
@@ -197,6 +216,26 @@ final class AppModel {
         destination = .home
         isNotificationsPresented = false; isAddFriendPresented = false; isFavoriteEditorPresented = false
         selectedFriendID = route.sender
+    }
+
+    func refreshNotificationPermission() async {
+        await notifications.refreshPermission()
+    }
+
+    private func registerPush(token: String) {
+        guard signedIn, profile != nil, !signingOut,
+              let environment = Bundle.main.object(forInfoDictionaryKey: "PokiAPNSEnvironment") as? String,
+              ["sandbox", "production"].contains(environment) else { return }
+        pushRegistration.upload(token: token, environment: environment)
+    }
+
+    func openNotification() {
+        guard !starting, signedIn, let profile, let recipient = notifications.pendingRecipient else { return }
+        notifications.pendingRecipient = nil
+        guard recipient == profile.id else { return }
+        destination = .home
+        isNotificationsPresented = true
+        Task { await refresh() }
     }
 
     func updateDraft(_ value: String, for friend: Friend) {

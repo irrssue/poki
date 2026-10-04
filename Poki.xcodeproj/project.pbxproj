@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		04AF49210701A701B615BEAC /* PushRegistration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 561BC49D4825CF52F38555D0 /* PushRegistration.swift */; };
 		1280A601718EC032615F1C74 /* BottomBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA140A34BA6AFF3BE5ED5194 /* BottomBar.swift */; };
 		14D9C22CF981AF32FDA9D310 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C44D969DEE728EF9DC27305 /* ProfileView.swift */; };
 		1EA99E3C7C5ABCCB0DE3AF78 /* AccountConfiguration.plist in Resources */ = {isa = PBXBuildFile; fileRef = 52292E58CAB5A26F33C76161 /* AccountConfiguration.plist */; };
@@ -16,6 +17,7 @@
 		85B113A2C99147B5AEB342F1 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 755B9F615DAAD4167417BDC1 /* RootView.swift */; };
 		8900824A48318B69969E3F07 /* FavoriteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D89D65E6886E2C4953ADF6A0 /* FavoriteStore.swift */; };
 		94E4F6B2F73E485604D392C9 /* FavoriteEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FAF7AABB23E0183A22EC099 /* FavoriteEditorView.swift */; };
+		9978D0CF001AE961F4FE3A79 /* NotificationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 615CE229DF3BA7248845383C /* NotificationController.swift */; };
 		9CEE414A989A0396F7C90813 /* NotificationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFAB85625BDF381B0B5E20AE /* NotificationsView.swift */; };
 		A590FB7C95D9F8A086D97C0B /* FriendRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEDA5A72B3C053F932A6BDC9 /* FriendRow.swift */; };
 		A6026EA264E16C865775026B /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F41F51A64258034A150FA0C /* AppModel.swift */; };
@@ -42,13 +44,16 @@
 
 /* Begin PBXFileReference section */
 		000AE84DB8C1645037BF3EF2 /* PokeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PokeService.swift; sourceTree = "<group>"; };
+		04866DBBF942FAD3918214DC /* Poki.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Poki.entitlements; sourceTree = "<group>"; };
 		0BD247E5E023594152C212A5 /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
 		1FAF7AABB23E0183A22EC099 /* FavoriteEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteEditorView.swift; sourceTree = "<group>"; };
 		4727BEE926764F4A19D08DF8 /* PokiCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PokiCore; path = ios/Packages/PokiCore; sourceTree = SOURCE_ROOT; };
 		52292E58CAB5A26F33C76161 /* AccountConfiguration.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = AccountConfiguration.plist; sourceTree = "<group>"; };
 		5573446B3297CCEF12C6DB24 /* PokiTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PokiTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		561BC49D4825CF52F38555D0 /* PushRegistration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushRegistration.swift; sourceTree = "<group>"; };
 		5AF50C6F7D241FF4993ED104 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
 		5C44D969DEE728EF9DC27305 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		615CE229DF3BA7248845383C /* NotificationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationController.swift; sourceTree = "<group>"; };
 		685F190B00A50C92A9D5CEFE /* Push.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Push.entitlements; sourceTree = "<group>"; };
 		6D6DC51F869356DD732A176B /* AccountService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountService.swift; sourceTree = "<group>"; };
 		755B9F615DAAD4167417BDC1 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
@@ -150,6 +155,7 @@
 				52292E58CAB5A26F33C76161 /* AccountConfiguration.plist */,
 				98455D71F0C6601B0B763A2E /* Assets.xcassets */,
 				A16BAD3E5EBEC8A662D42DFB /* Info.plist */,
+				04866DBBF942FAD3918214DC /* Poki.entitlements */,
 				685F190B00A50C92A9D5CEFE /* Push.entitlements */,
 			);
 			path = Resources;
@@ -189,8 +195,10 @@
 			children = (
 				6D6DC51F869356DD732A176B /* AccountService.swift */,
 				D89D65E6886E2C4953ADF6A0 /* FavoriteStore.swift */,
+				615CE229DF3BA7248845383C /* NotificationController.swift */,
 				000AE84DB8C1645037BF3EF2 /* PokeService.swift */,
 				CCD05D4BCC10F7798A568255 /* PushNotifications.swift */,
+				561BC49D4825CF52F38555D0 /* PushRegistration.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -357,11 +365,13 @@
 				FC8140089961F2C0DB11BC47 /* FeedbackBanner.swift in Sources */,
 				A590FB7C95D9F8A086D97C0B /* FriendRow.swift in Sources */,
 				BAA21DD0E3E85998F4107A08 /* HomeView.swift in Sources */,
+				9978D0CF001AE961F4FE3A79 /* NotificationController.swift in Sources */,
 				9CEE414A989A0396F7C90813 /* NotificationsView.swift in Sources */,
 				A82743ED5341C3E6245F0EAC /* PokeService.swift in Sources */,
 				CDE6411F9855CB48A1E95F8D /* PokiApp.swift in Sources */,
 				14D9C22CF981AF32FDA9D310 /* ProfileView.swift in Sources */,
 				D88BBCFDA85B3E84C40ECFA5 /* PushNotifications.swift in Sources */,
+				04AF49210701A701B615BEAC /* PushRegistration.swift in Sources */,
 				85B113A2C99147B5AEB342F1 /* RootView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -455,8 +465,9 @@
 		94F55ADDA3FD2E9EAC58DA83 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APS_ENVIRONMENT = production;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = "$(POKI_PUSH_ENTITLEMENTS)";
+				CODE_SIGN_ENTITLEMENTS = ios/Poki/Resources/Poki.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = S9ZZCZZ5BV;
 				INFOPLIST_FILE = ios/Poki/Resources/Info.plist;
@@ -469,6 +480,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				POKI_APNS_ENVIRONMENT = production;
 				POKI_PUSH_ENTITLEMENTS = "";
 				POKI_PUSH_ENVIRONMENT = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.pokiapp.Poki;
@@ -562,8 +574,9 @@
 		F937574961BD8E5960C56F5C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APS_ENVIRONMENT = development;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = "$(POKI_PUSH_ENTITLEMENTS)";
+				CODE_SIGN_ENTITLEMENTS = ios/Poki/Resources/Poki.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = S9ZZCZZ5BV;
 				INFOPLIST_FILE = ios/Poki/Resources/Info.plist;
@@ -576,6 +589,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				POKI_APNS_ENVIRONMENT = sandbox;
 				POKI_PUSH_ENTITLEMENTS = "";
 				POKI_PUSH_ENVIRONMENT = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.pokiapp.Poki;
