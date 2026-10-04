@@ -53,7 +53,12 @@ export class APNsClient {
   private connections = new Map<string, ClientHttp2Session>();
   private jwt: string;
   private issuedAt = Date.now();
-  constructor(private readonly key: string, private readonly keyID: string, private readonly teamID: string, private readonly topic: string) {
+  private readonly key: string;
+  private readonly keyID: string;
+  private readonly teamID: string;
+  private readonly topic: string;
+  constructor(key: string, keyID: string, teamID: string, topic: string) {
+    this.key = key; this.keyID = keyID; this.teamID = teamID; this.topic = topic;
     this.jwt = providerToken(key, keyID, teamID, this.issuedAt);
   }
   async send(payload: PushPayload): Promise<APNsResponse> {
