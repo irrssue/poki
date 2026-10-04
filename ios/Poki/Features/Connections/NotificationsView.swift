@@ -43,7 +43,10 @@ struct NotificationsView: View {
                 if !outgoing.isEmpty {
                     Section("Sent requests") {
                         ForEach(outgoing) { request in
-                            HStack { Text("@\(request.person.username)"); Spacer(); Text("Pending").foregroundStyle(.secondary) }
+                            HStack {
+                                Text("@\(request.person.username)"); Spacer(); Text("Pending").foregroundStyle(.secondary)
+                                Button("Cancel") { cancel(request) }.buttonStyle(.bordered).disabled(busyIDs.contains(request.id))
+                            }
                         }
                     }
                 }
@@ -52,6 +55,13 @@ struct NotificationsView: View {
             .navigationTitle("Notifications").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .task { await model.refresh(); await model.markPokesRead() }
+        }
+    }
+    private func cancel(_ request: FriendRequest) {
+        busyIDs.insert(request.id); error = nil
+        Task {
+            do { try await model.removeFriend(request.person.id) } catch { self.error = error.localizedDescription }
+            busyIDs.remove(request.id)
         }
     }
     private func respond(_ request: FriendRequest, accept: Bool) {

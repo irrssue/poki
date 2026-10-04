@@ -3,7 +3,16 @@
 Account onboarding, shared profiles, username search, request acceptance, and
 in-app pokes are now implemented against the hosted Supabase project. See
 [accounts setup](accounts-setup.md) for deployment, verification, and remaining
-email delivery/APNs prerequisites. The older review below describes the prior
+email delivery/APNs prerequisites. 
+
+October 4, 2026: added `supabase/migrations/202610040001_safety.sql` with remove
+friend, cancel request, block/unblock, account deletion, and scheduled retention
+cleanup, covered by PGlite integration tests and wired into the profile and inbox
+screens. It must still be applied to the hosted project. Remaining external setup:
+custom SMTP (or approved disabling of email confirmation) and APNs credentials
+for push delivery.
+
+The older review below describes the prior
 prototype and is retained as historical context.
 
 # Implementation review — September 28, 2026

@@ -24,6 +24,8 @@ struct SocialSnapshot: Codable, Sendable {
     let friends: [Person]
     let requests: [FriendRequest]
     let pokes: [ReceivedPoke]
+    // Optional so older databases without the safety migration still decode.
+    let blocked: [Person]?
 }
 struct SearchResult: Codable, Sendable {
     let person: Person

@@ -1,13 +1,16 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 
 const alice = '11111111-1111-4111-8111-111111111111';
 const bob = '22222222-2222-4222-8222-222222222222';
 const eve = '33333333-3333-4333-8333-333333333333';
 
-test('real PostgreSQL enforces account and friendship boundaries', async t => {
+const migrations = new URL('../../supabase/migrations/', import.meta.url);
+
+// Applies every migration in filename order, as Supabase does, with stub auth roles.
+async function database(t) {
   const db = new PGlite();
   t.after(() => db.close());
   await db.exec(`create role anon; create role authenticated; create schema auth;
@@ -15,14 +18,20 @@ test('real PostgreSQL enforces account and friendship boundaries', async t => {
     create function auth.uid() returns uuid language sql as
       $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     insert into auth.users values ('${alice}'),('${bob}'),('${eve}');`);
-  await db.exec(await readFile(new URL('../../supabase/migrations/202609300001_social.sql', import.meta.url), 'utf8'));
-  await db.exec(await readFile(new URL('../../supabase/migrations/202609300002_search_parameter.sql', import.meta.url), 'utf8'));
+  for (const file of (await readdir(migrations)).filter(name => name.endsWith('.sql')).sort()) {
+    await db.exec(await readFile(new URL(file, migrations), 'utf8'));
+  }
   const actor = async (id) => {
     await db.exec('reset role');
     await db.query("select set_config('request.jwt.claim.sub',$1,false)", [id]);
     await db.exec('set role authenticated');
   };
   const snapshot = async () => (await db.query('select public.poki_snapshot() as value')).rows[0].value;
+  return { db, actor, snapshot };
+}
+
+test('real PostgreSQL enforces account and friendship boundaries', async t => {
+  const { db, actor, snapshot } = await database(t);
   await actor(alice);
   await db.query('select public.poki_create_profile($1,$2)', ['@Irrssue','Alice']);
   await actor(bob);
@@ -83,4 +92,78 @@ test('real PostgreSQL enforces account and friendship boundaries', async t => {
   await assert.rejects(db.query('select public.poki_snapshot()'), /permission denied/);
   await actor('');
   await assert.rejects(db.query('select public.poki_snapshot()'), /Sign in/);
+});
+
+test('real PostgreSQL enforces removal, blocking, deletion, and cleanup', async t => {
+  const { db, actor, snapshot } = await database(t);
+  for (const [id, handle] of [[alice,'alice'],[bob,'bob'],[eve,'eve']]) {
+    await actor(id);
+    await db.query('select public.poki_create_profile($1,$2)', [handle, handle]);
+  }
+  const befriend = async (from, to) => {
+    await actor(from);
+    await db.query('select public.poki_request($1)', [to]);
+    await actor(to);
+    const request = (await snapshot()).requests.find(r => r.incoming && r.person.id === from);
+    await db.query('select public.poki_respond($1,true)', [request.id]);
+  };
+  await befriend(alice, bob);
+  await actor(alice);
+  await db.query('select public.poki_remove($1)', [bob]);
+  assert.equal((await snapshot()).friends.length, 0);
+  await actor(bob);
+  assert.equal((await snapshot()).friends.length, 0);
+  await assert.rejects(db.query('select public.poki_send($1,$2,$3)', [alice,'Hi','66666666-6666-4666-8666-666666666666']), /only poke accepted friends/);
+  // A sender can cancel an outgoing request.
+  await db.query('select public.poki_request($1)', [alice]);
+  await db.query('select public.poki_remove($1)', [alice]);
+  assert.equal((await snapshot()).requests.length, 0);
+
+  await befriend(alice, bob);
+  await actor(bob);
+  await db.query('select public.poki_send($1,$2,$3)', [alice,'Before block','77777777-7777-4777-8777-777777777777']);
+  await actor(alice);
+  await assert.rejects(db.query('select public.poki_block($1)', [alice]), /cannot block yourself/);
+  await db.query('select public.poki_block($1)', [bob]);
+  await db.query('select public.poki_block($1)', [bob]);
+  let a = await snapshot();
+  assert.equal(a.friends.length, 0);
+  assert.equal(a.pokes.length, 0);
+  assert.deepEqual(a.blocked.map(p => p.id), [bob]);
+  assert.equal((await db.query('select public.poki_search($1) as value', ['bob'])).rows[0].value, null);
+  await assert.rejects(db.query('select public.poki_request($1)', [bob]), /not available/);
+  await actor(bob);
+  assert.equal((await snapshot()).blocked.length, 0);
+  assert.equal((await db.query('select public.poki_search($1) as value', ['alice'])).rows[0].value, null);
+  await assert.rejects(db.query('select public.poki_request($1)', [alice]), /not available/);
+  await assert.rejects(db.query('select public.poki_send($1,$2,$3)', [alice,'Hi','88888888-8888-4888-8888-888888888888']), /only poke accepted friends/);
+  // Only the blocker can lift a block.
+  await db.query('select public.poki_unblock($1)', [alice]);
+  await actor(alice);
+  assert.equal((await snapshot()).blocked.length, 1);
+  await db.query('select public.poki_unblock($1)', [bob]);
+  a = await snapshot();
+  assert.equal(a.blocked.length, 0);
+  assert.equal(a.pokes.length, 1);
+  assert.equal((await db.query('select public.poki_search($1) as value', ['bob'])).rows[0].value.relationship, 'none');
+
+  await befriend(eve, alice);
+  await actor(eve);
+  await db.query('select public.poki_delete_account()');
+  await assert.rejects(db.query('select public.poki_create_profile($1,$2)', ['eve','Eve']), /foreign key|violates/);
+  await actor(alice);
+  a = await snapshot();
+  assert.equal(a.friends.length, 0);
+  assert.equal((await db.query('select public.poki_search($1) as value', ['eve'])).rows[0].value, null);
+
+  await assert.rejects(db.query('select poki_private.cleanup()'), /permission denied/);
+  await db.exec(`reset role;
+    update poki_private.pokes set created_at = now() - interval '8 days';
+    select poki_private.cleanup();`);
+  assert.equal((await db.query('select count(*)::int as n from poki_private.pokes')).rows[0].n, 0);
+  await db.exec('set role anon');
+  for (const call of ['poki_remove($1)', 'poki_block($1)', 'poki_unblock($1)']) {
+    await assert.rejects(db.query(`select public.${call}`, [bob]), /permission denied/);
+  }
+  await assert.rejects(db.query('select public.poki_delete_account()'), /permission denied/);
 });

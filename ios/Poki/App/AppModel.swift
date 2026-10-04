@@ -22,6 +22,7 @@ final class AppModel {
     var profile: Person?
     var requests: [FriendRequest] = []
     var receivedPokes: [ReceivedPoke] = []
+    var blocked: [Person] = []
     var signedIn = false
     var starting = true
     var syncError: String?
@@ -88,6 +89,26 @@ final class AppModel {
         await refresh()
     }
 
+    func removeFriend(_ id: UUID) async throws {
+        let _: EmptyResponse = try await accountService.rpc("poki_remove", body: ["person_id": id.uuidString])
+        await refresh()
+    }
+
+    func block(_ id: UUID) async throws {
+        let _: EmptyResponse = try await accountService.rpc("poki_block", body: ["person_id": id.uuidString])
+        await refresh()
+    }
+
+    func unblock(_ id: UUID) async throws {
+        let _: EmptyResponse = try await accountService.rpc("poki_unblock", body: ["person_id": id.uuidString])
+        await refresh()
+    }
+
+    func deleteAccount() async throws {
+        let _: EmptyResponse = try await accountService.rpc("poki_delete_account")
+        await signOut()
+    }
+
     func refresh() async {
         guard signedIn, !refreshing else { return }
         refreshing = true
@@ -104,6 +125,7 @@ final class AppModel {
         friends = snapshot.friends.map(\.friend)
         requests = snapshot.requests
         receivedPokes = snapshot.pokes
+        blocked = snapshot.blocked ?? []
         if let saved = favoriteStore.load(), friends.contains(where: { $0.id == saved.friendID }) { favorite = saved }
         else { favorite = nil }
     }
@@ -117,7 +139,7 @@ final class AppModel {
 
     func signOut() async {
         sessionGeneration = UUID()
-        signedIn = false; profile = nil; friends = []; requests = []; receivedPokes = []
+        signedIn = false; profile = nil; friends = []; requests = []; receivedPokes = []; blocked = []
         drafts = [:]; attempts = [:]; sendingFriendIDs = []; favorite = nil; favoriteStore.save(nil)
         feedback = nil; syncError = nil; destination = .home
         isAddFriendPresented = false; isNotificationsPresented = false; isFavoriteEditorPresented = false
