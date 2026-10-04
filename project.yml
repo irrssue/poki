@@ -19,6 +19,7 @@ targets:
     info:
       path: ios/Poki/Resources/Info.plist
       properties:
+        PokiPushEnvironment: "$(POKI_PUSH_ENVIRONMENT)"
         CFBundleURLTypes:
           - CFBundleURLName: com.pokiapp.poki.auth
             CFBundleURLSchemes:
@@ -28,6 +29,9 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.pokiapp.Poki
+        POKI_PUSH_ENVIRONMENT: ""
+        CODE_SIGN_ENTITLEMENTS: "$(POKI_PUSH_ENTITLEMENTS)"
+        POKI_PUSH_ENTITLEMENTS: ""
         DEVELOPMENT_TEAM: S9ZZCZZ5BV
         INFOPLIST_KEY_CFBundleDisplayName: Poki
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.social-networking

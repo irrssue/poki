@@ -27,6 +27,7 @@ struct ProfileView: View {
                 }
 
                 if let error { Text(error).foregroundStyle(.red) }
+                if let error = model.syncError { Text(error).font(.footnote).foregroundStyle(.secondary) }
 
                 Section("Poki") {
                     Button("Add a friend", systemImage: "person.badge.plus") { model.isAddFriendPresented = true }
@@ -34,6 +35,20 @@ struct ProfileView: View {
                     Button("Configure favorite", systemImage: "star") {
                         model.isFavoriteEditorPresented = true
                     }
+                }
+
+                Section {
+                    Text(model.push.status).font(.footnote).foregroundStyle(.secondary)
+                    if model.push.available {
+                        if model.push.denied {
+                            Link("Open notification settings", destination: URL(string: UIApplication.openSettingsURLString)!)
+                        } else {
+                            Button("Enable notifications", systemImage: "bell") { Task { await model.push.enable() } }
+                                .disabled(model.push.busy)
+                        }
+                    }
+                } header: { Text("Notifications") } footer: {
+                    Text("Allow notifications to see when a friend is thinking of you, even when Poki is closed.")
                 }
 
                 if !model.friends.isEmpty {

@@ -18,6 +18,7 @@ struct HomeView: View {
             if let error = model.syncError {
                 Text(error).font(.footnote).foregroundStyle(.secondary).padding(.horizontal)
             }
+        ScrollViewReader { proxy in
         ScrollView {
             LazyVStack(spacing: 12) {
                 if model.friends.isEmpty {
@@ -30,7 +31,7 @@ struct HomeView: View {
                     }.padding(.top, 70)
                 }
                 ForEach(model.friends) { friend in
-                    FriendRow(friend: friend)
+                    FriendRow(friend: friend).id(friend.id)
                 }
             }
             .padding(.horizontal, 20)
@@ -40,6 +41,11 @@ struct HomeView: View {
         .scrollDismissesKeyboard(.interactively)
         .accessibilityLabel("Friends")
         .refreshable { await model.refresh() }
+        .onChange(of: model.selectedFriendID) { _, id in
+            if let id { withAnimation { proxy.scrollTo(id, anchor: .center) } }
+        }
+        .onAppear { if let id = model.selectedFriendID { proxy.scrollTo(id, anchor: .center) } }
+        }
         }
     }
 }

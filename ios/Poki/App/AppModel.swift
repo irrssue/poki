@@ -10,6 +10,9 @@ final class AppModel {
         case profile
     }
 
+    let push = PushNotifications()
+    var selectedFriendID: UUID?
+    private var pendingNotification: (recipient: UUID, sender: UUID)?
     var destination: Destination = .home
     var friends: [Friend] = []
     var drafts: [UUID: String] = [:]
@@ -52,6 +55,7 @@ final class AppModel {
         signedIn = await accountService.isSignedIn
         if signedIn { await refresh() }
         starting = false
+        applyNotificationRoute()
     }
 
     func signIn(email: String, password: String) async throws {
@@ -129,6 +133,7 @@ final class AppModel {
 
     func deleteAccount() async throws {
         let _: EmptyResponse = try await accountService.rpc("poki_delete_account")
+        push.clearAfterSignOut()
         await signOut()
     }
 
@@ -152,6 +157,8 @@ final class AppModel {
         muted = snapshot.muted ?? []
         if let saved = favoriteStore.load(), friends.contains(where: { $0.id == saved.friendID }) { favorite = saved }
         else { favorite = nil }
+        applyNotificationRoute()
+        if let profile { await push.synchronize(owner: profile.id, account: accountService) }
     }
 
     func markPokesRead() async {
@@ -162,12 +169,34 @@ final class AppModel {
     }
 
     func signOut() async {
+        do { try await push.unregister(account: accountService) }
+        catch { syncError = error.localizedDescription; return }
+        push.clearAfterSignOut()
+        pendingNotification = nil; selectedFriendID = nil
         sessionGeneration = UUID()
         signedIn = false; profile = nil; friends = []; requests = []; receivedPokes = []; blocked = []; muted = []
         drafts = [:]; attempts = [:]; sendingFriendIDs = []; favorite = nil; favoriteStore.save(nil)
         feedback = nil; syncError = nil; destination = .home
         isAddFriendPresented = false; isNotificationsPresented = false; isFavoriteEditorPresented = false
         await accountService.signOut()
+    }
+
+    func openNotification(recipient: UUID, sender: UUID) {
+        pendingNotification = (recipient, sender)
+        if starting { return }
+        Task { await refresh(); applyNotificationRoute() }
+    }
+
+    func applyNotificationRoute() {
+        guard let route = pendingNotification, !starting else { return }
+        pendingNotification = nil
+        guard signedIn, profile?.id == route.recipient,
+              friends.contains(where: { $0.id == route.sender }),
+              !blocked.contains(where: { $0.id == route.sender }),
+              !muted.contains(where: { $0.id == route.sender }) else { return }
+        destination = .home
+        isNotificationsPresented = false; isAddFriendPresented = false; isFavoriteEditorPresented = false
+        selectedFriendID = route.sender
     }
 
     func updateDraft(_ value: String, for friend: Friend) {
