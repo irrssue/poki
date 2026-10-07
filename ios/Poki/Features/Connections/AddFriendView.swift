@@ -8,6 +8,7 @@ struct AddFriendView: View {
     @State private var searched = false
     @State private var busy = false
     @State private var error: String?
+    @State private var reporting: ReportTarget?
     var body: some View {
         NavigationStack {
             List {
@@ -52,15 +53,24 @@ struct AddFriendView: View {
                                 }
                             }.disabled(busy)
                         }
+                        Button("Report @\(result.person.username)", systemImage: "exclamationmark.bubble", role: .destructive) {
+                            reporting = ReportTarget(result.person)
+                        }
                     }
                 } else if searched && !busy && error == nil {
                     ContentUnavailableView("No user found", systemImage: "person.crop.circle.badge.questionmark", description: Text("Check the username and try again."))
                 }
             }
             .navigationTitle("Add a friend").navigationBarTitleDisplayMode(.inline)
+            .sheet(item: $reporting, onDismiss: clearIfBlocked) { ReportView(target: $0) }
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .onChange(of: username) { _, _ in result = nil; searched = false; error = nil }
         }
+    }
+    // A person blocked while reporting disappears from search, as on the server.
+    private func clearIfBlocked() {
+        guard let result, model.blocked.contains(where: { $0.id == result.person.id }) else { return }
+        self.result = nil; searched = false
     }
     private func search() {
         guard !busy, !username.isEmpty else { return }

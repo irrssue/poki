@@ -94,6 +94,10 @@ actor AccountService {
         let body = try JSONEncoder().encode(ResponseBody(request_id: id, accept: accept))
         let _: EmptyResponse = try await requestData(path: "rest/v1/rpc/poki_respond", body: body, token: token)
     }
+    func report(_ report: ReportSubmission) async throws {
+        let token = try await accessToken()
+        let _: EmptyResponse = try await requestData(path: "rest/v1/rpc/poki_report", body: JSONEncoder().encode(report), token: token)
+    }
     func markRead(ids: [UUID]) async throws {
         let token = try await accessToken()
         let body = try JSONEncoder().encode(["poke_ids": ids])
@@ -174,4 +178,6 @@ actor AccountService {
 }
 struct EmptyResponse: Codable, Sendable {}
 private struct ResponseBody: Encodable { let request_id: UUID; let accept: Bool }
+// Nil fields are omitted, so the database defaults apply.
+struct ReportSubmission: Encodable, Sendable { let person_id: UUID; let reason: String; let poke_id: UUID?; let details: String?; let also_block: Bool }
 private struct RemoteError: Decodable { let code: String?; let message: String? }

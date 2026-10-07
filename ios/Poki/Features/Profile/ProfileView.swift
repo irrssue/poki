@@ -5,6 +5,7 @@ import PokiCore
 struct ProfileView: View {
     @Environment(AppModel.self) private var model
     @State private var pendingAction: PersonAction?
+    @State private var reporting: ReportTarget?
     @State private var isDeletePresented = false
     @State private var busy = false
     @State private var error: String?
@@ -73,6 +74,7 @@ struct ProfileView: View {
                                     }
                                     Button("Remove friend", systemImage: "person.badge.minus") { pendingAction = .remove(friend) }
                                     Button("Block", systemImage: "hand.raised", role: .destructive) { pendingAction = .block(friend) }
+                                    Button("Report…", systemImage: "exclamationmark.bubble", role: .destructive) { reporting = ReportTarget(friend) }
                                 } label: {
                                     Image(systemName: "ellipsis").frame(width: 44, height: 44)
                                 }
@@ -109,6 +111,9 @@ struct ProfileView: View {
                                 Button("Unblock") { perform { try await model.unblock(person.id) } }
                                     .buttonStyle(.bordered)
                             }
+                            .swipeActions {
+                                Button("Report", systemImage: "exclamationmark.bubble") { reporting = ReportTarget(person) }.tint(.red)
+                            }
                         }
                     }
                 }
@@ -120,6 +125,7 @@ struct ProfileView: View {
             }
             .disabled(busy)
             .navigationTitle("Profile")
+            .sheet(item: $reporting) { ReportView(target: $0) }
             .confirmationDialog(pendingAction?.title ?? "", isPresented: Binding(
                 get: { pendingAction != nil }, set: { if !$0 { pendingAction = nil } }
             ), titleVisibility: .visible, presenting: pendingAction) { action in

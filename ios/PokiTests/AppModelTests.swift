@@ -67,6 +67,13 @@ final class AppModelTests: XCTestCase {
         XCTAssertNil(snapshot.muted)
     }
 
+    func testReportOmitsMissingPokeAndDetailsSoDatabaseDefaultsApply() throws {
+        let submission = ReportSubmission(person_id: UUID(), reason: ReportReason.spam.rawValue, poke_id: nil, details: nil, also_block: true)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(submission)) as? [String: Any])
+        XCTAssertEqual(Set(json.keys), ["person_id", "reason", "also_block"])
+        XCTAssertEqual(json["also_block"] as? Bool, true)
+    }
+
     func testSignOutClearsMuteState() async {
         let model = model()
         model.muted = [Person(id: UUID(), username: "sam", name: "Sam")]

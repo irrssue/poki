@@ -10,7 +10,8 @@ The first two migrations have been applied to the development project.
 **not yet applied**: paste it into the project's SQL Editor, or run
 `supabase db push` after `supabase link --project-ref dpxgiogbdbmpqnxxgoph`. Then apply
 `202610040002_mute.sql` (mute), `202610040003_push.sql` (device registration and
-push outbox) and `202610040004_push_rotation.sql` (token takeover, expiry cleanup) in that order.
+push outbox), `202610040004_push_rotation.sql` (token takeover, expiry cleanup) and
+`202610070001_reports.sql` (private reports and moderation) in that order.
 The app
 tolerates the older schema, but remove/block/delete fail until it is applied. The tables live in
 `poki_private`, are protected by RLS, and have no client grants. Authenticated
@@ -34,6 +35,7 @@ This avoids requiring a separately hosted API for this development increment.
 | `poki_mute` | `person_id` | Mutes an accepted friend for the caller only |
 | `poki_unmute` | `person_id` | Removes only the caller’s mute preference, even after removal/blocking |
 | `poki_delete_account` | none | Deletes the auth user; profile, connections, pokes and blocks cascade |
+| `poki_report` | `person_id`, `reason`, optional `poke_id`, `details`, `also_block` | Private report with copied evidence; optionally blocks in the same transaction |
 
 Clients poll every 10 seconds while active and support pull-to-refresh. The bell
 counts incoming requests and unread pokes. Accepting adds the friend to both
@@ -84,9 +86,43 @@ caller's inbox and unread badge without changing friendship, search, or sending.
 Unmuting restores recent pokes with their existing read state. Mutes survive
 removal/blocking, remain manageable in Profile, and cascade on account deletion.
 The sender cannot see whether they are muted, and muted pokes are never pushed.
-Before a public release, add reporting and verify push delivery on hardware. Current messages use a 30 Unicode-code-point budget
+Before a public release, verify push delivery on hardware. Current messages use a 30 Unicode-code-point budget
 on both client and database; compound emoji consume multiple units. Full
 30-grapheme support remains a follow-up requiring a matching server validator.
+
+## Reporting and moderation
+
+People can report a friend (Profile → ⋯ → Report), a blocked person (swipe in
+Profile's Blocked list), a received poke or friend request (swipe or long-press in
+the inbox), and a username search result. They choose a reason (harassment,
+inappropriate, spam, impersonation, other), may add one line of up to 300
+characters, and can block in the same step (on by default). Reports are private:
+the reported person is never told, and reports never appear in any snapshot.
+
+Because pokes are purged after 7 days, `poki_report` copies evidence into the
+report: the reported poke's message, or the reported person's last five pokes to the
+reporter. Retrying an open report for the same person and poke is a no-op. Reports
+are limited to 5 per minute per account. Reports outlive either account (ids become
+null; the reported username is kept) and are deleted 90 days after resolution.
+
+Moderation is private and has no client access. The two RPCs are granted only to
+`service_role`; run them from the Supabase dashboard SQL Editor:
+
+```sql
+select jsonb_pretty(poki_list_reports());              -- open reports, oldest first
+select jsonb_pretty(poki_list_reports('actioned', 20)); -- or 'dismissed'
+select poki_resolve_report('<report id>', 'dismissed');
+select poki_resolve_report('<report id>', 'actioned');       -- handled elsewhere
+select poki_resolve_report('<report id>', 'actioned', true); -- remove the account
+```
+
+Each listed report shows the reason, details, copied evidence, reporter id, and how
+many open reports name the same person. Removing an account resolves every open
+report against that person as actioned and deletes their auth user, so their profile,
+friendships, pokes and devices cascade away. They can still sign in with Apple again
+as a new account; a durable ban is not implemented. Check the queue at least daily
+once the app is public. App Review also expects published contact details for
+reporting; add a support address or page before submission.
 
 ## Verification
 

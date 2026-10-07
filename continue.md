@@ -52,10 +52,24 @@ current state. Start by checking `git status` and recent commits.
   registration; sign-out waits for server removal). Tapping a push opens the inbox
   after checking it belongs to the signed-in account. Debug builds register as
   `sandbox`, Release as `production`; `Poki.entitlements` sets `aps-environment`.
+- **Reporting exists (October 7).** `202610070001_reports.sql` adds private
+  `poki_private.reports`, `poki_report` (authenticated; copies evidence, optional
+  block in the same transaction, 5/minute, open-retry dedupe), and service-role-only
+  `poki_list_reports` / `poki_resolve_report` (optionally deletes the reported
+  account). Cleanup drops reports 90 days after resolution. iOS: `ReportView`
+  (`Features/Safety`) is reachable from Profile's friend menu and Blocked swipe,
+  inbox poke/request swipe or long-press, and the Add a friend result.
+  `ReportDetails` (PokiCore) flattens details to one line. The moderation workflow is
+  in `docs/accounts-setup.md`. The migration is NOT applied to the hosted project.
 - Two parallel push UIs were committed by mistake on October 4 (`79eed3c`,
   `9d4ccf8`); they were consolidated into the single path above.
 
 ## Verification and limits
+
+- October 7, after reporting: all 39 backend tests, all 10 PokiCore package tests,
+  and all 14 simulator app tests passed (iPhone 18 Pro simulator). `ReportView`
+  could not be exercised in the running app because Sign in with Apple is still
+  blocked; test it on device with two accounts once sign-in works.
 
 - All 20 backend tests passed after the mute increment. PGlite applies every SQL
   migration in filename order and exercises authorization and state transitions.
@@ -97,7 +111,8 @@ current state. Start by checking `git status` and recent commits.
    access).** Ask the owner to run `! npx supabase login` in the session (browser
    approval), then `npx supabase link --project-ref dpxgiogbdbmpqnxxgoph` (may
    prompt for the database password; never commit or log it) and push only
-   `202610040001_safety.sql`, then `202610040002_mute.sql`. Alternatively the
+   `202610040001_safety.sql`, then `202610040002_mute.sql`, then the push
+   migrations and `202610070001_reports.sql` in filename order. Alternatively the
    owner pastes each file into the dashboard SQL Editor in that order. Re-probe
    `poki_block`/`poki_mute` afterwards to confirm they exist. Test with two accounts: remove/cancel, block in both
    directions, blocker-only unblock, directional mute/unmute, and inbox/badge
@@ -131,7 +146,8 @@ current state. Start by checking `git status` and recent commits.
 
 ## Later backlog
 
-- Report-user controls and a private reporting/moderation workflow.
+- A support/contact page or address for App Review, linked from Profile.
+- Durable bans (a removed account can sign in with Apple again as a new account).
 - Revoke Apple tokens on account deletion (App Store requirement for Sign in with
   Apple): needs a server-side Sign in with Apple key and the authorization code.
 - Match the spec's 30 visible characters (graphemes) on client and server;

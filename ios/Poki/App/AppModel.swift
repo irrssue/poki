@@ -112,6 +112,12 @@ final class AppModel {
         await refresh()
     }
 
+    func report(_ id: UUID, reason: ReportReason, pokeID: UUID? = nil, details: String, block: Bool) async throws {
+        let note = ReportDetails.normalized(details)
+        try await accountService.report(ReportSubmission(person_id: id, reason: reason.rawValue, poke_id: pokeID, details: note.isEmpty ? nil : note, also_block: block))
+        if block { await refresh() }
+    }
+
     func deleteAccount() async throws {
         let _: EmptyResponse = try await accountService.rpc("poki_delete_account")
         await signOut(accountDeleted: true)

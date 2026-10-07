@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		04AF49210701A701B615BEAC /* PushRegistration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 561BC49D4825CF52F38555D0 /* PushRegistration.swift */; };
+		11829D4F19C8321CC927EA53 /* ReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB55AC9DB61B76FF0CC65882 /* ReportView.swift */; };
 		1280A601718EC032615F1C74 /* BottomBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA140A34BA6AFF3BE5ED5194 /* BottomBar.swift */; };
 		14D9C22CF981AF32FDA9D310 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C44D969DEE728EF9DC27305 /* ProfileView.swift */; };
 		1EA99E3C7C5ABCCB0DE3AF78 /* AccountConfiguration.plist in Resources */ = {isa = PBXBuildFile; fileRef = 52292E58CAB5A26F33C76161 /* AccountConfiguration.plist */; };
@@ -66,6 +67,7 @@
 		BE5F51DA0285BA63EC97ADF5 /* FeedbackBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackBanner.swift; sourceTree = "<group>"; };
 		C3AB41828CC9939437362783 /* Poki.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Poki.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D89D65E6886E2C4953ADF6A0 /* FavoriteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteStore.swift; sourceTree = "<group>"; };
+		EB55AC9DB61B76FF0CC65882 /* ReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportView.swift; sourceTree = "<group>"; };
 		EFAB85625BDF381B0B5E20AE /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
 		F1AA90DC4F2DA245C4B7D203 /* PokiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PokiApp.swift; sourceTree = "<group>"; };
 		FA140A34BA6AFF3BE5ED5194 /* BottomBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomBar.swift; sourceTree = "<group>"; };
@@ -136,6 +138,7 @@
 				CC7F260436B7D0A82D7ED3CD /* Favorite */,
 				16F123412B3974A2DF9B6F1C /* Friends */,
 				8F437E110BD93D6647B6981B /* Profile */,
+				DB52CD9B148E35DAC012D3E0 /* Safety */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -206,6 +209,14 @@
 				1FAF7AABB23E0183A22EC099 /* FavoriteEditorView.swift */,
 			);
 			path = Favorite;
+			sourceTree = "<group>";
+		};
+		DB52CD9B148E35DAC012D3E0 /* Safety */ = {
+			isa = PBXGroup;
+			children = (
+				EB55AC9DB61B76FF0CC65882 /* ReportView.swift */,
+			);
+			path = Safety;
 			sourceTree = "<group>";
 		};
 		E47C67F687DFC4EFFF271D30 /* PokiTests */ = {
@@ -370,6 +381,7 @@
 				CDE6411F9855CB48A1E95F8D /* PokiApp.swift in Sources */,
 				14D9C22CF981AF32FDA9D310 /* ProfileView.swift in Sources */,
 				04AF49210701A701B615BEAC /* PushRegistration.swift in Sources */,
+				11829D4F19C8321CC927EA53 /* ReportView.swift in Sources */,
 				85B113A2C99147B5AEB342F1 /* RootView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

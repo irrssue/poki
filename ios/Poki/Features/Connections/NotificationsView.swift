@@ -5,6 +5,7 @@ struct NotificationsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var busyIDs: Set<UUID> = []
     @State private var error: String?
+    @State private var reporting: ReportTarget?
     var body: some View {
         NavigationStack {
             List {
@@ -26,6 +27,8 @@ struct NotificationsView: View {
                                     if busyIDs.contains(request.id) { ProgressView() }
                                 }.disabled(busyIDs.contains(request.id))
                             }.padding(.vertical, 6)
+                            .contextMenu { reportButton(ReportTarget(request.person)) }
+                            .swipeActions { reportButton(ReportTarget(request.person)) }
                         }
                     }
                 }
@@ -36,6 +39,8 @@ struct NotificationsView: View {
                                 Text("\(poke.person.name) poked you").font(.headline)
                                 Text(poke.message)
                             }.padding(.vertical, 4)
+                            .contextMenu { reportButton(ReportTarget(poke)) }
+                            .swipeActions { reportButton(ReportTarget(poke)) }
                         }
                     }
                 }
@@ -53,9 +58,13 @@ struct NotificationsView: View {
             }
             .refreshable { await model.refresh() }
             .navigationTitle("Notifications").navigationBarTitleDisplayMode(.inline)
+            .sheet(item: $reporting) { ReportView(target: $0) }
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .task { await model.refresh(); await model.markPokesRead() }
         }
+    }
+    private func reportButton(_ target: ReportTarget) -> some View {
+        Button("Report", systemImage: "exclamationmark.bubble", role: .destructive) { reporting = target }.tint(.red)
     }
     private func cancel(_ request: FriendRequest) {
         busyIDs.insert(request.id); error = nil

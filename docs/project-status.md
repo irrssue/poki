@@ -39,6 +39,15 @@ needs a paid Apple Developer team (the current Personal team cannot provision
 Sign in with Apple or Push) and the Supabase Apple provider; see
 [accounts setup](accounts-setup.md).
 
+October 7, 2026: added `202610070001_reports.sql` and in-app reporting. People
+can report a friend, blocked person, received poke, friend request or search result
+with a reason, optional details, and an optional block in the same step. Reports are
+private, keep copied evidence after pokes expire, deduplicate open retries, are
+rate-limited, and are deleted 90 days after resolution. Service-role-only RPCs list
+and resolve reports and can remove an offending account. PGlite tests cover
+validation, privacy, evidence, deduplication, limits, moderation and retention. Not
+yet applied to the hosted project.
+
 The older review below describes the prior
 prototype and is retained as historical context.
 

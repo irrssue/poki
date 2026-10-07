@@ -387,3 +387,94 @@ test('cleanup drops expired registrations and stale push work',async t=>{
   }
   assert.equal((await db.query('select count(*)::int n from poki_private.pokes')).rows[0].n,1);
 });
+
+test('reports stay private, keep evidence, deduplicate, and support moderation', async t => {
+  const { db, actor, snapshot } = await database(t);
+  for (const [id, handle] of [[alice, 'alice'], [bob, 'bob'], [eve, 'eve']]) {
+    await actor(id);
+    await db.query('select public.poki_create_profile($1,$2)', [handle, handle]);
+  }
+  await actor(alice);
+  await db.query('select public.poki_request($1)', [bob]);
+  await actor(bob);
+  await db.query('select public.poki_respond($1,true)', [(await snapshot()).requests[0].id]);
+  const rude = 'f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0';
+  await db.query('select public.poki_send($1,$2,$3)', [alice, 'Go away', rude]);
+  const report = (person, reason, poke = null, details = null, block = false) =>
+    db.query('select public.poki_report($1,$2,$3,$4,$5)', [person, reason, poke, details, block]);
+  const moderator = async () => { await db.exec('reset role; set role service_role'); };
+  const list = async (status = 'open') => (await db.query('select public.poki_list_reports($1) as v', [status])).rows[0].v;
+
+  await actor(alice);
+  await assert.rejects(report(alice, 'spam'), /cannot report yourself/);
+  await assert.rejects(report(bob, 'rude'), /Choose a reason/);
+  await assert.rejects(report(bob, null), /Choose a reason/);
+  await assert.rejects(report('12121212-1212-4121-8121-121212121212', 'spam'), /not available/);
+  await assert.rejects(report(bob, 'other', null, 'x'.repeat(301)), /300 characters/);
+  await assert.rejects(report(bob, 'other', null, 'line\nbreak'), /300 characters/);
+  // Only the recipient can report a poke, and only against its sender.
+  await assert.rejects(report(eve, 'harassment', rude), /no longer available/);
+  await actor(eve);
+  await assert.rejects(report(bob, 'harassment', rude), /no longer available/);
+  await actor(alice);
+  await report(bob, 'harassment', rude, '  Keeps sending this  ');
+  await report(bob, 'harassment', rude, 'Retry');
+  await assert.rejects(db.query('select * from poki_private.reports'), /permission denied/);
+  await assert.rejects(list(), /permission denied/);
+  await assert.rejects(db.query("select public.poki_resolve_report($1,'dismissed')", [rude]), /permission denied/);
+  assert.equal((await snapshot()).friends.length, 1);
+  await report(bob, 'spam', null, '', true);
+  let a = await snapshot();
+  assert.equal(a.friends.length, 0);
+  assert.deepEqual(a.blocked.map(p => p.id), [bob]);
+  assert.equal(a.reports, undefined);
+  await actor(bob);
+  assert.equal((await snapshot()).reports, undefined);
+
+  // Evidence survives the poke retention purge.
+  await db.exec("reset role; update poki_private.pokes set created_at=now()-interval '8 days'; select poki_private.cleanup();");
+  await moderator();
+  let open = await list();
+  assert.equal(open.length, 2);
+  assert.deepEqual(open.map(r => [r.reason, r.details, r.poke_id]), [['harassment', 'Keeps sending this', rude], ['spam', null, null]]);
+  for (const r of open) {
+    assert.deepEqual(r.evidence.map(e => e.message), ['Go away']);
+    assert.deepEqual(r.reported, { id: bob, username: 'bob', open_reports: 2 });
+    assert.equal(r.reporter_id, alice);
+  }
+
+  // Repeated no-op reports still count against the rate limit.
+  await actor(eve);
+  for (let n = 0; n < 5; n++) await report(bob, 'impersonation');
+  await assert.rejects(report(bob, 'impersonation'), /wait a minute/);
+
+  await moderator();
+  await assert.rejects(db.query("select public.poki_resolve_report($1,'ignored')", [open[0].id]), /Invalid report outcome/);
+  await assert.rejects(db.query("select public.poki_resolve_report($1,'dismissed',true)", [open[0].id]), /Invalid report outcome/);
+  await db.query("select public.poki_resolve_report($1,'dismissed')", [open[0].id]);
+  await assert.rejects(db.query("select public.poki_resolve_report($1,'dismissed')", [open[0].id]), /not open/);
+  assert.equal((await list('dismissed')).length, 1);
+  open = await list();
+  assert.equal(open.length, 2);
+  await db.query("select public.poki_resolve_report($1,'actioned',true)", [open[0].id]);
+  assert.deepEqual(await list(), []);
+  const actioned = await list('actioned');
+  assert.equal(actioned.length, 2);
+  assert.ok(actioned.every(r => r.reported.id === null && r.reported.username === 'bob'));
+  await db.exec('reset role');
+  assert.equal((await db.query('select count(*)::int n from auth.users where id=$1', [bob])).rows[0].n, 0);
+
+  // Reports outlive the reporter's account, then expire 90 days after resolution.
+  await actor(alice);
+  await db.query('select public.poki_delete_account()');
+  await moderator();
+  assert.ok((await list('actioned')).every(r => r.reporter_id !== alice));
+  await db.exec(`reset role; update poki_private.reports set resolved_at=now()-interval '91 days'
+    where status='actioned'; select poki_private.cleanup();`);
+  assert.equal((await db.query('select count(*)::int n from poki_private.reports')).rows[0].n, 1);
+
+  await db.exec('set role anon');
+  await assert.rejects(report(eve, 'spam'), /permission denied/);
+  await actor('');
+  await assert.rejects(report(eve, 'spam'), /Sign in/);
+});
