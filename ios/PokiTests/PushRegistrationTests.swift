@@ -63,6 +63,70 @@ final class PushRegistrationTests: XCTestCase {
         XCTAssertNotNil(registration.error)
     }
 
+    func testSameTokenRegistersAgainForNewOwner() async {
+        let api = RecordingPushAPI()
+        let storage = MemoryPushStorage()
+        let registration = PushRegistration(api: api, storage: storage)
+        registration.activate(owner: alice)
+        registration.upload(token: token, environment: "sandbox")
+        await registration.waitForUploads()
+        let firstID = storage.record!.id
+        let nextOwner = UUID()
+        registration.activate(owner: nextOwner)
+        XCTAssertFalse(registration.registered)
+        registration.upload(token: token, environment: "sandbox")
+        await registration.waitForUploads()
+        XCTAssertEqual(api.registered.count, 2)
+        XCTAssertEqual(storage.record?.owner, nextOwner)
+        XCTAssertNotEqual(storage.record?.id, firstID)
+    }
+
+    func testCacheIncludesEnvironmentAndRotatedToken() async {
+        let api = RecordingPushAPI()
+        let registration = PushRegistration(api: api, storage: MemoryPushStorage())
+        registration.activate(owner: alice)
+        for environment in ["sandbox", "sandbox", "production"] {
+            registration.upload(token: token, environment: environment)
+            await registration.waitForUploads()
+        }
+        XCTAssertEqual(api.registered.count, 2)
+        registration.upload(token: String(repeating: "cd", count: 32), environment: "production")
+        await registration.waitForUploads()
+        XCTAssertEqual(api.registered.count, 3)
+    }
+
+    func testSignOutWaitsForInFlightRegistrationBeforeRemoval() async throws {
+        let api = HeldPushAPI()
+        let storage = MemoryPushStorage()
+        let registration = PushRegistration(api: api, storage: storage)
+        registration.activate(owner: alice)
+        registration.upload(token: token, environment: "sandbox")
+        await api.waitUntilStarted()
+        let stop = Task { try await registration.stop() }
+        // Let stop suspend on the in-flight request, then deliver a late token.
+        await Task.yield()
+        registration.upload(token: String(repeating: "cd", count: 32), environment: "sandbox")
+        XCTAssertEqual(api.events, ["register"])
+        api.finish()
+        try await stop.value
+        await registration.waitForUploads()
+        XCTAssertEqual(api.events, ["register", "registered", "unregister"])
+        XCTAssertNil(storage.record)
+        XCTAssertFalse(registration.registered)
+    }
+
+    func testOldUploadCannotMarkNewOwnerRegistered() async {
+        let api = HeldPushAPI()
+        let registration = PushRegistration(api: api, storage: MemoryPushStorage())
+        registration.activate(owner: alice)
+        registration.upload(token: token, environment: "sandbox")
+        await api.waitUntilStarted()
+        registration.activate(owner: UUID())
+        api.finish()
+        await registration.waitForUploads()
+        XCTAssertFalse(registration.registered)
+    }
+
     func testDeletedAccountSkipsServerRemoval() async throws {
         let api = RecordingPushAPI()
         let storage = MemoryPushStorage()
@@ -80,7 +144,8 @@ final class MemoryPushStorage: PushRegistrationStorage {
     func save(_ record: PushRegistrationRecord?) throws { self.record = record }
 }
 
-private final class RecordingPushAPI: PushRegistrationAPI, @unchecked Sendable {
+@MainActor
+private final class RecordingPushAPI: PushRegistrationAPI {
     var registered: [(id: UUID, token: String)] = []
     var unregistered: [UUID] = []
     var failNext = false
@@ -93,4 +158,20 @@ private final class RecordingPushAPI: PushRegistrationAPI, @unchecked Sendable {
         if failNext { failNext = false; throw URLError(.timedOut) }
         unregistered.append(id)
     }
+}
+
+@MainActor
+private final class HeldPushAPI: PushRegistrationAPI {
+    var events: [String] = []
+    private var continuation: CheckedContinuation<Void, Never>?
+    func registerPush(id: UUID, token: String, environment: String) async throws {
+        events.append("register")
+        await withCheckedContinuation { continuation = $0 }
+        events.append("registered")
+    }
+    func unregisterPush(id: UUID) async throws { events.append("unregister") }
+    func waitUntilStarted() async {
+        while continuation == nil { await Task.yield() }
+    }
+    func finish() { continuation?.resume(); continuation = nil }
 }

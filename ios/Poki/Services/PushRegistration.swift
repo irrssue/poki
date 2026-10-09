@@ -61,7 +61,12 @@ struct PushRegistrationRecord: Codable, Equatable {
     private var queue: Task<Void, Never>?
     private var suspended = false
     private var owner: UUID?
-    private var uploadedToken: String?
+    private struct UploadIdentity: Equatable {
+        let owner: UUID
+        let token: String
+        let environment: String
+    }
+    private var uploadedIdentity: UploadIdentity?
     private var uploadedAt: Date?
     var error: String?
     private(set) var registered = false
@@ -71,15 +76,19 @@ struct PushRegistrationRecord: Codable, Equatable {
     }
     func activate(owner: UUID) {
         guard !suspended else { return }
+        if self.owner != owner {
+            uploadedIdentity = nil; uploadedAt = nil; registered = false; error = nil
+        }
         self.owner = owner
     }
     func upload(token: String, environment: String) {
         guard let owner, !suspended else { return }
+        let identity = UploadIdentity(owner: owner, token: token, environment: environment)
         let previous = queue
         queue = Task {
             await previous?.value
             guard !suspended, self.owner == owner else { return }
-            if uploadedToken == token, let uploadedAt, Date().timeIntervalSince(uploadedAt) < 86400 { return }
+            if uploadedIdentity == identity, let uploadedAt, Date().timeIntervalSince(uploadedAt) < 86400 { return }
             do {
                 // Keychain outlives reinstalls; the server moves this token from a previous owner.
                 let saved = try storage.load()
@@ -87,8 +96,13 @@ struct PushRegistrationRecord: Codable, Equatable {
                 // Persist before uploading: a lost response can still mean server success.
                 try storage.save(record)
                 try await api.registerPush(id: record.id, token: token, environment: environment)
-                uploadedToken = token; uploadedAt = Date(); registered = true; error = nil
-            } catch { self.error = "Could not connect notifications. Try again when Poki is available." }
+                // An account change can happen while the network request is suspended.
+                guard self.owner == owner, !suspended else { return }
+                uploadedIdentity = identity; uploadedAt = Date(); registered = true; error = nil
+            } catch {
+                guard self.owner == owner, !suspended else { return }
+                self.error = "Could not connect notifications. Try again when Poki is available."
+            }
         }
     }
     func stop(accountDeleted: Bool = false) async throws {
@@ -99,7 +113,7 @@ struct PushRegistrationRecord: Codable, Equatable {
                 try await api.unregisterPush(id: saved.id)
             }
             try storage.save(nil)
-            owner = nil; uploadedToken = nil; uploadedAt = nil; registered = false; error = nil
+            owner = nil; uploadedIdentity = nil; uploadedAt = nil; registered = false; error = nil
             suspended = false
         } catch {
             suspended = false
