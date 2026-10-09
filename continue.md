@@ -1,4 +1,4 @@
-# Poki — agent handoff (October 4, 2026)
+# Poki — agent handoff (October 8, 2026)
 
 Read `about.md`, `docs/accounts-setup.md`, and the current updates at the top of
 `docs/project-status.md`. The older implementation review is historical, not the
@@ -65,6 +65,15 @@ current state. Start by checking `git status` and recent commits.
   `9d4ccf8`); they were consolidated into the single path above.
 
 ## Verification and limits
+
+- October 8: resumed iOS notification verification after the usage-limit pause.
+  Commit `2a68740` scopes registration caching to owner, token, and APNs
+  environment, resets registration state on account changes, and rejects late
+  completion state from the previous owner. All 18 simulator app tests passed
+  on iPhone 18 Pro, including nine push registration tests covering in-flight
+  sign-out, token rotation, environment changes, and stale completion handling.
+  Build-for-testing also succeeded. No live provisioning, credentials, migration,
+  or worker deployment was changed; hardware push remains unverified.
 
 - October 7, after reporting: all 39 backend tests, all 10 PokiCore package tests,
   and all 14 simulator app tests passed (iPhone 18 Pro simulator). `ReportView`
