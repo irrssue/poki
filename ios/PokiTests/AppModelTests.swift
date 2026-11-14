@@ -18,6 +18,16 @@ final class AppModelTests: XCTestCase {
         await model.send(to: friend)
         XCTAssertEqual(model.drafts[friend.id], "")
         XCTAssertEqual(model.feedback, SendFeedback(friendName: friend.name, succeeded: true))
+        XCTAssertNotNil(model.sentAt[friend.id])
+        XCTAssertNil(model.failedAt[friend.id])
+    }
+
+    func testComposedEmojiDraftUsesVisibleCharacterBudget() {
+        let model = model()
+        let friend = model.friends[0]
+        let thirtyFamilies = String(repeating: "👨‍👩‍👧‍👦", count: 30)
+        model.updateDraft(thirtyFamilies, for: friend)
+        XCTAssertEqual(model.drafts[friend.id], thirtyFamilies)
     }
 
     func testInvalidDraftIsNotStored() {
@@ -59,6 +69,8 @@ final class AppModelTests: XCTestCase {
         await model.send(to: friend)
         XCTAssertEqual(model.drafts[friend.id], "Miss you")
         XCTAssertEqual(model.feedback?.succeeded, false)
+        XCTAssertNotNil(model.failedAt[friend.id])
+        XCTAssertNil(model.sentAt[friend.id])
     }
 
     func testOlderSnapshotDecodesWithoutMuteState() throws {

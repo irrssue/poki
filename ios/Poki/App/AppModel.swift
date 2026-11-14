@@ -14,6 +14,10 @@ final class AppModel {
     var friends: [Friend] = []
     var drafts: [UUID: String] = [:]
     var sendingFriendIDs: Set<UUID> = []
+    /// When each friend's latest poke was accepted or failed, so rows can
+    /// play a haptic and briefly show the outcome next to that person.
+    var sentAt: [UUID: Date] = [:]
+    var failedAt: [UUID: Date] = [:]
     var favorite: FavoriteConfiguration?
     var feedback: SendFeedback?
     var isFavoriteEditorPresented = false
@@ -171,7 +175,7 @@ final class AppModel {
         notifications.clear()
         sessionGeneration = UUID()
         signedIn = false; profile = nil; friends = []; requests = []; receivedPokes = []; blocked = []; muted = []
-        drafts = [:]; attempts = [:]; sendingFriendIDs = []; favorite = nil; favoriteStore.save(nil)
+        drafts = [:]; sentAt = [:]; failedAt = [:]; attempts = [:]; sendingFriendIDs = []; favorite = nil; favoriteStore.save(nil)
         feedback = nil; syncError = nil; destination = .home
         isAddFriendPresented = false; isNotificationsPresented = false; isFavoriteEditorPresented = false
         await accountService.signOut()
@@ -224,10 +228,12 @@ final class AppModel {
             guard generation == sessionGeneration else { return }
             attempts[friend.id] = nil
             if override == nil && drafts[friend.id, default: ""] == draft { drafts[friend.id] = "" }
+            sentAt[friend.id] = .now
             feedback = SendFeedback(friendName: friend.name, succeeded: true)
         } catch {
             guard generation == sessionGeneration else { return }
             syncError = error.localizedDescription
+            failedAt[friend.id] = .now
             feedback = SendFeedback(friendName: friend.name, succeeded: false)
         }
 

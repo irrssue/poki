@@ -66,6 +66,18 @@ current state. Start by checking `git status` and recent commits.
 
 ## Verification and limits
 
+- November 13: messages now count 30 *visible* characters on both sides.
+  `202611130001_visible_length.sql` adds `poki_private.visible_length` (flag pairs,
+  dropped combining marks/variation selectors/skin tones/tags, folded ZWJ
+  sequences, 256 code-point cap) and replaces `poki_send` and the pokes check;
+  `MessageValidator.visibleLength` mirrors it pass for pass, and both are tested
+  against `contracts/message-length.json` (Swift also checks each fixture equals
+  `String.count`). `FriendRow` makes the whole container the poke target via a
+  background button (only the text field is excluded), shows a near-limit
+  counter while editing, a brief checkmark plus success/error haptics from
+  `AppModel.sentAt`/`failedAt`, and a warning haptic when an over-limit edit is
+  refused. 40 backend, 12 PokiCore and 19 simulator tests passed.
+
 - October 8: resumed iOS notification verification after the usage-limit pause.
   Commit `2a68740` scopes registration caching to owner, token, and APNs
   environment, resets registration state on account changes, and rejects late
@@ -121,7 +133,9 @@ current state. Start by checking `git status` and recent commits.
    approval), then `npx supabase link --project-ref dpxgiogbdbmpqnxxgoph` (may
    prompt for the database password; never commit or log it) and push only
    `202610040001_safety.sql`, then `202610040002_mute.sql`, then the push
-   migrations and `202610070001_reports.sql` in filename order. Alternatively the
+   migrations, `202610070001_reports.sql` and `202611130001_visible_length.sql`
+   in filename order. Until the last one is applied, the hosted server still counts
+   code points, so emoji-heavy messages the app now allows will be rejected there. Alternatively the
    owner pastes each file into the dashboard SQL Editor in that order. Re-probe
    `poki_block`/`poki_mute` afterwards to confirm they exist. Test with two accounts: remove/cancel, block in both
    directions, blocker-only unblock, directional mute/unmute, and inbox/badge
@@ -159,10 +173,8 @@ current state. Start by checking `git status` and recent commits.
 - Durable bans (a removed account can sign in with Apple again as a new account).
 - Revoke Apple tokens on account deletion (App Store requirement for Sign in with
   Apple): needs a server-side Sign in with Apple key and the authorization code.
-- Match the spec's 30 visible characters (graphemes) on client and server;
-  current validation uses 30 Unicode code points. Add shared Unicode fixtures.
-- Make all non-editing friend-row areas poke targets, add accepted-send haptics,
-  and test keyboard, Dynamic Type, VoiceOver, and accidental-send behavior.
+- Test the friend row on device: keyboard, Dynamic Type, VoiceOver, and
+  accidental-send behavior (whole-row target and haptics landed November 13).
 - Private profile-photo storage and a real app icon.
 - Favorite-person WidgetKit/App Intents extension after send reliability is proven.
 - Optional reproducible Supabase CLI configuration.

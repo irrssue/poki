@@ -478,3 +478,28 @@ test('reports stay private, keep evidence, deduplicate, and support moderation',
   await actor('');
   await assert.rejects(report(eve, 'spam'), /Sign in/);
 });
+
+test('poke messages are limited to 30 visible characters shared with iOS', async t => {
+  const { db, actor, snapshot } = await database(t);
+  const fixtures = JSON.parse(await readFile(new URL('../../contracts/message-length.json', import.meta.url), 'utf8'));
+  for (const { text, visible } of fixtures.cases) {
+    const { rows } = await db.query('select poki_private.visible_length($1) as n', [text]);
+    assert.equal(rows[0].n, visible, `visible length of ${JSON.stringify(text)}`);
+  }
+  await actor(alice);
+  await db.query('select public.poki_create_profile($1,$2)', ['alice','Alice']);
+  await actor(bob);
+  await db.query('select public.poki_create_profile($1,$2)', ['bob','Bob']);
+  await db.query('select public.poki_request($1)', [alice]);
+  await actor(alice);
+  await db.query('select public.poki_respond($1,true)', [(await snapshot()).requests[0].id]);
+  await assert.rejects(db.query('select poki_private.visible_length($1)', ['x']), /permission denied/);
+  const family = '\u{1F468}‍\u{1F469}‍\u{1F467}‍\u{1F466}';
+  const poke = '55555555-5555-4555-8555-555555555555';
+  for (const invalid of [family.repeat(31), 'x'.repeat(31), '́'.repeat(3), family.repeat(37)]) {
+    await assert.rejects(db.query('select public.poki_send($1,$2,$3)', [bob,invalid,poke]), /Invalid poke message/);
+  }
+  await db.query('select public.poki_send($1,$2,$3)', [bob,family.repeat(30),poke]);
+  await actor(bob);
+  assert.equal((await snapshot()).pokes[0].message, family.repeat(30));
+});

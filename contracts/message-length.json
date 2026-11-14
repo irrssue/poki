@@ -1,0 +1,59 @@
+{
+  "description": "Visible-character counts shared by the iOS MessageValidator and poki_private.visible_length. Both must agree on every case.",
+  "maximumVisible": 30,
+  "maximumCodePoints": 256,
+  "cases": [
+    {
+      "text": "Thinking of you",
+      "visible": 15
+    },
+    {
+      "text": "Caf\u00e9",
+      "visible": 4
+    },
+    {
+      "text": "Cafe\u0301",
+      "visible": 4
+    },
+    {
+      "text": "\uc548\ub155\ud558\uc138\uc694",
+      "visible": 5
+    },
+    {
+      "text": "\u2764\ufe0f",
+      "visible": 1
+    },
+    {
+      "text": "1\ufe0f\u20e3",
+      "visible": 1
+    },
+    {
+      "text": "\ud83d\udc4d\ud83c\udffd",
+      "visible": 1
+    },
+    {
+      "text": "\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67\u200d\ud83d\udc66",
+      "visible": 1
+    },
+    {
+      "text": "\ud83d\udc69\ud83c\udffd\u200d\ud83d\udcbb",
+      "visible": 1
+    },
+    {
+      "text": "\ud83c\udde8\ud83c\udde6\ud83c\uddef\ud83c\uddf5",
+      "visible": 2
+    },
+    {
+      "text": "\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc65\udb40\udc6e\udb40\udc67\udb40\udc7f",
+      "visible": 1
+    },
+    {
+      "text": "Coffee later? \u2615\ufe0f",
+      "visible": 15
+    },
+    {
+      "text": "Miss you \ud83e\udd7a",
+      "visible": 10
+    }
+  ]
+}
