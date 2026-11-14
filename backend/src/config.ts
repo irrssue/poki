@@ -8,6 +8,7 @@ export interface Config {
   host: string;
   port: number;
   logLevel: typeof levels[number];
+  supportEmail?: string;
 }
 
 function option<T extends string>(name: string, value: string, choices: readonly T[]): T {
@@ -26,7 +27,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (!/^\d+$/.test(port) || Number(port) < 1 || Number(port) > 65535) {
     throw new Error('Invalid PORT: expected an integer from 1 to 65535');
   }
+  const supportEmail = env.SUPPORT_EMAIL?.trim() || undefined;
+  if (supportEmail !== undefined && !/^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(supportEmail)) {
+    throw new Error('Invalid SUPPORT_EMAIL: expected an email address');
+  }
   return {
+    ...(supportEmail ? { supportEmail } : {}),
     nodeEnv: option('NODE_ENV', env.NODE_ENV ?? 'development', environments),
     host,
     port: Number(port),

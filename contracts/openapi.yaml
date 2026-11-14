@@ -30,6 +30,30 @@ paths:
                   status:
                     type: string
                     const: ok
+  /support:
+    get:
+      operationId: getSupportPage
+      summary: Public support and reporting page
+      security: []
+      responses:
+        '200':
+          description: Static, script-free HTML page.
+          content:
+            text/html:
+              schema:
+                type: string
+  /privacy:
+    get:
+      operationId: getPrivacyPage
+      summary: Public privacy policy
+      security: []
+      responses:
+        '200':
+          description: Static, script-free HTML page.
+          content:
+            text/html:
+              schema:
+                type: string
 components:
   schemas:
     Error:

@@ -118,6 +118,15 @@ struct ProfileView: View {
                     }
                 }
 
+                Section("Help") {
+                    Link(destination: URL(string: "https://poki.irrssue.com/support")!) {
+                        Label("Support", systemImage: "questionmark.circle")
+                    }
+                    Link(destination: URL(string: "https://poki.irrssue.com/privacy")!) {
+                        Label("Privacy policy", systemImage: "hand.raised.square")
+                    }
+                }
+
                 Section {
                     Button("Sign out", role: .destructive) { Task { await model.signOut() } }
                     Button("Delete account", role: .destructive) { isDeletePresented = true }

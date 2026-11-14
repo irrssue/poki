@@ -1,5 +1,6 @@
 import Fastify, { LogController } from 'fastify';
 import type { Config } from './config.ts';
+import { registerPages } from './pages.ts';
 
 // Composition is separate from listen so tests never need an open port.
 export function buildApp(config: Config) {
@@ -30,6 +31,8 @@ export function buildApp(config: Config) {
     reply.header('Cache-Control', 'no-store');
     return { status: 'ok' };
   });
+
+  registerPages(app, config);
 
   app.setNotFoundHandler(async (_request, reply) => {
     return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'Route not found' } });

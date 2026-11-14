@@ -12,6 +12,9 @@ services:
     security_opt: [no-new-privileges:true]
     mem_limit: 256m
     cpus: 0.5
+    environment:
+      # Optional public support address shown on /support and /privacy.
+      SUPPORT_EMAIL: ${POKI_SUPPORT_EMAIL:-}
     ports:
       - "127.0.0.1:3014:3000"
     healthcheck:

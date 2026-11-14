@@ -66,6 +66,19 @@ current state. Start by checking `git status` and recent commits.
 
 ## Verification and limits
 
+- November 13 (later): **the homelab is offline.** https://poki.irrssue.com/v1/health
+  returns Cloudflare error 1033 (HTTP 530, tunnel not connected); `ssh homelab` times
+  out and Tailscale shows `homelab` last seen about a day earlier. This needs the
+  owner to power on / reconnect the server; Docker's `unless-stopped` policy should
+  bring `api` and `tunnel` back automatically. Then redeploy current `main` with
+  `bash deploy/homelab.sh` so the new pages go live.
+- November 13: the backend now serves static `/support` and `/privacy` pages
+  (`backend/src/pages.ts`; strict CSP, no scripts) for App Store support/privacy
+  URLs, linked from a new Profile "Help" section. The contact address comes from
+  optional `SUPPORT_EMAIL` (compose passes `POKI_SUPPORT_EMAIL` from the deploy
+  shell); without it the page points to in-app reporting. The owner must choose a
+  real support address before submission. 42 backend and 19 simulator tests passed.
+
 - November 13: messages now count 30 *visible* characters on both sides.
   `202611130001_visible_length.sql` adds `poki_private.visible_length` (flag pairs,
   dropped combining marks/variation selectors/skin tones/tags, folded ZWJ
@@ -169,7 +182,7 @@ current state. Start by checking `git status` and recent commits.
 
 ## Later backlog
 
-- A support/contact page or address for App Review, linked from Profile.
+- Choose a support email and set `POKI_SUPPORT_EMAIL` when deploying (pages exist).
 - Durable bans (a removed account can sign in with Apple again as a new account).
 - Revoke Apple tokens on account deletion (App Store requirement for Sign in with
   Apple): needs a server-side Sign in with Apple key and the authorization code.

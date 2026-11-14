@@ -45,3 +45,26 @@ test('malformed and oversized bodies are rejected without echoing content', asyn
     assert.deepEqual(response.json(), { error: { code: 'INVALID_REQUEST', message: 'Invalid request' } });
   }
 });
+
+test('support and privacy pages are static, script-free HTML', async t => {
+  const app = buildApp(loadConfig({ NODE_ENV: 'test', LOG_LEVEL: 'silent', SUPPORT_EMAIL: 'help@example.com' }));
+  t.after(() => app.close());
+  for (const url of ['/support', '/privacy']) {
+    const response = await app.inject({ method: 'GET', url });
+    assert.equal(response.statusCode, 200);
+    assert.match(String(response.headers['content-type']), /^text\/html/);
+    assert.match(String(response.headers['content-security-policy']), /default-src 'none'/);
+    assert.equal(response.headers['x-content-type-options'], 'nosniff');
+    assert.match(response.body, /mailto:help@example\.com/);
+    assert.doesNotMatch(response.body, /<script/i);
+  }
+});
+
+test('pages work without a support email and reject an invalid one', async t => {
+  const app = buildApp(config);
+  t.after(() => app.close());
+  const response = await app.inject('/support');
+  assert.equal(response.statusCode, 200);
+  assert.doesNotMatch(response.body, /mailto:/);
+  assert.throws(() => loadConfig({ SUPPORT_EMAIL: '<script>@x.y' }), /Invalid SUPPORT_EMAIL/);
+});
